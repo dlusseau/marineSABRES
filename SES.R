@@ -1,4 +1,5 @@
 library(igraph)
+library(readxl)
 
 links<-as.data.frame(read_excel("Simplified final map SES_TurismSimplified.xlsx", 
                                 sheet = "Connections"))
