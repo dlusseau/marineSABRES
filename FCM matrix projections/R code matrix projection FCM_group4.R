@@ -1,7 +1,8 @@
 ##############################################################
 #### R code #marine SABRES T5.3 FCM map projection############
+#### Group 4                                      ############
 ##############################################################
-####   3 July 2024
+####   5 July 2024
 
 # Load packages ###############################
 
@@ -12,9 +13,9 @@ library(BoolNet)
 library(stringr)
 # library(reshape2)
 
-source('~./FCM matrix projection/Funcs.R')
+source('Funcs.R')
 
-group <- 'group1'
+group <- 'group4'
 
 # Load data ###############################
 
@@ -23,8 +24,10 @@ group <- 'group1'
 # folder <- "C:/Users/davlu/OneDrive - Danmarks Tekniske Universitet/SABRES/PESTEL analyses/"
 folder <- "C:/Users/bmjv/OneDrive - Danmarks Tekniske Universitet/PESTEL analyses/"
 
-FCM1 <- read.csv(paste0(folder,"FCM_network_group1.csv"), header = T)
 
+FCM4 <- read.csv(paste0(folder,"FCM_network_group4.csv"),
+                 header = T, sep = ";", dec = ","
+)
 # Create directory where results are saved
 dir.create(paste0('./FCM matrix projections/res',group))
 
@@ -39,11 +42,11 @@ dir.create(paste0('./FCM matrix projections/res',group))
 # "INFLUENCE.VALUE" = Agreed, signed and weighted influence from each PESTLE element onto the others
 
 # Create PESTLE elements
-elements <- c(unique(FCM1$ELEMENT))
+elements <- c(unique(FCM4$ELEMENT))
 
 # Extract starting condition of each PESTLE element 
-starting.value <- FCM1$ELEMENT.VALUE[!duplicated(FCM1$ELEMENT)]
-names(starting.value) <- FCM1$ELEMENT[!duplicated(FCM1$ELEMENT)]
+starting.value <- FCM4$ELEMENT.VALUE[!duplicated(FCM4$ELEMENT)]
+names(starting.value) <- FCM4$ELEMENT[!duplicated(FCM4$ELEMENT)]
 starting.value <- t(t(starting.value))
 
 # Create a matrix of zeros with 'elements'
@@ -52,31 +55,35 @@ colnames(PESTLE.mat) <- elements
 row.names(PESTLE.mat) <- elements
 
 # Fill in the connections beteen PESTLE elements in a matrix
-for (i in 1:nrow(FCM1)) {
-  PESTLE.mat[which(row.names(PESTLE.mat) == FCM1$ELEMENT[i]), which(colnames(PESTLE.mat) == FCM1$INFLUENCE[i])] <- FCM1$INFLUENCE.VALUE[i]
+for (i in 1:nrow(FCM4)) {
+  PESTLE.mat[which(row.names(PESTLE.mat) == FCM4$ELEMENT[i]), which(colnames(PESTLE.mat) == FCM4$INFLUENCE[i])] <- FCM4$INFLUENCE.VALUE[i]
 }
 
 ## Run simulation ###############################
 
 iter <- 1000
-FCM1.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
-FCM1.sim[, 1] <- starting.value # First values are the input from stakeholders
+FCM4.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
+FCM4.sim[, 1] <- starting.value # First values are the input from stakeholders
 
 for (i in 2:1000) {
   # Each iteration the PESTLE matrix is multiplied with the previous outcome
-  FCM1.sim[, i] <- PESTLE.mat %*% matrix((FCM1.sim[, i - 1]), ncol = 1)
-  
+  FCM4.sim[, i] <- PESTLE.mat %*% matrix((FCM4.sim[, i - 1]), ncol = 1)
 }
 
 ## Figures ###############################
 
+# saved per figure
 plot.network(PESTLE.mat, group)
-plot.time.prog(sim.output = FCM1.sim, group)
+plot.time.prog(sim.output = FCM4.sim, group)
 
 # PCA
-pca.FCM1 <- prcomp(t(FCM1.sim), scale = FALSE)
+pca.FCM4<- prcomp(t(FCM4.sim), scale = FALSE)
 
-plot.PCA(pca = pca.FCM1, group)
+plot.PCA(pca = pca.FCM4, group)
+
+# plot.network(PESTLE.mat, group, save.plot = F)
+# plot.time.prog(sim.output = FCM4.sim, group, save.plot = F)
+# plot.PCA(FCM4.sim, group, save.plot = F)
 
 ## Stability of graph Laplacian a la Brownski #################################
 
@@ -87,6 +94,10 @@ PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski 
 
 # PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
 eigen(PESTLE.Lap)
+
+# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
+# Therefore everything moves into the same direction; any disturbance will 
+# likely have very little effect on the system.
 
 # The dominant (largest) eigenvalue indicates the dominant state
 # The corresponding eigenvector indicates the rank of the PESTLE factors
@@ -107,27 +118,26 @@ for (i in 1:ncol(PESTLE.bin)) {
     negs <- paste0("!", negs)
   }
   all <- c(poss, negs)
-
+  
   boolean.df$factors[i] <- paste(all, collapse = "|")
 }
 
-filename <- paste0("PESTLE_bool_",group)
-write.csv(boolean.df, file = paste0(folder, filename, ".csv"), row.names = F, quote = FALSE)
+filename <- "PESTLE_bool_4"
+write.csv(boolean.df, file = paste0(folder, filename, ".csv"), 
+          row.names = F, quote = FALSE)
 
 ## Load network and obtain states ##################################################
 
-pestle_boolean1 <- loadNetwork(paste0(folder, filename, ".csv"))
-states.pestle1 <- getAttractors(pestle_boolean1)
+pestle_boolean4 <- loadNetwork(paste0(folder, filename, ".csv"))
+states.pestle4 <- getAttractors(pestle_boolean4)
 
 # Simple graph
-plot.state.map(states = states.pestle1,group = group)
-
-state.map <- plotStateGraph(states, layout = layout.fruchterman.reingold, plotIt = FALSE)
+plot.state.map(states = states.pestle4,group = group)
 
 # Write graph: final figure will be made in Gephi
 write_graph(
   state.map,
-  file = paste0(folder,"pestle1_boolean.graphml"),
+  file = paste0(folder,"pestle4_boolean.graphml"),
   format = "graphml"
 )
 
@@ -135,89 +145,4 @@ write_graph(
 trans.tab <- getTransitionTable(states)
 # plot.state.graph(states)
 print(getBasinOfAttraction(states, 1))
-
-
-##################################################
-### back to the weighted matrix
-### systematic pressed disturbance on systematic
-### is the system behaving as we expect?
-
-#######
-#######
-####### this is the code to take to do the matrix projection simulation
-#######
-### in the way the matrix multiplication takes place here
-### we need to make sure that we deal with an assortment
-### where columns contributes to rows (arrow direction)
-### column is the starting point of the arrow
-### and row is end point of the arrow
-
-matrix.dist(starting.value, PESTLE.mat, 
-            dist.element = 'P', dist.magnitude = 0.5, 
-            iter = 10000)
-  
-
-######################################################
-
-
-##### pressed disturbance
-
-iter=10000
-FCM1.sim<-matrix(NA,length(elements),iter)
-FCM1.sim[,1]<-starting.value
-
-for ( i in 2:10000) {
-  
-  
-  disturbed<-FCM1.sim[,i-1]
-  disturbed[6]<-disturbed[6]+.5
-  disturbed[3]<-disturbed[3]+.5
-  
-  FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((disturbed), ncol = 1)
-  #FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((FCM1.sim[,i-1]), ncol = 1)
-  
-}
-
-
-row.names(FCM1.sim)<-elements
-sim.melt<-melt(FCM1.sim)
-
-ggplot(sim.melt,aes(x=log10(Var2),y=((value)),colour=factor(Var1)))+
-  geom_path()
-
-
-
-ggplot(subset(sim.melt,Var2>900&Var2<990),aes(x=(Var2),y=((value)),colour=factor(Var1)))+
-  geom_path()
-
-
-#####################
-###sensitivity
-sen.iter<-10000
-FCM1.sen.init<-data.frame(P=rep(NA,sen.iter),E=rep(NA,sen.iter),S=rep(NA,sen.iter),T=rep(NA,sen.iter),L=rep(NA,sen.iter),EN=rep(NA,sen.iter))
-
-for (j in 1:sen.iter) {
-  
-  iter=1000
-  FCM1.sim<-matrix(NA,length(elements),iter)
-  FCM1.sim[,1]<-runif(6,0,1)
-  
-  for ( i in 2:iter) {
-    
-    
-    disturbed<-FCM1.sim[,i-1]
-    disturbed[6]<-disturbed[6]+.5
-    
-    FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((disturbed), ncol = 1)
-    #FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((FCM1.sim[,i-1]), ncol = 1)
-    
-  }
-  
-  
-  FCM1.sen.init[j,]<-FCM1.sim[,iter]
-  
-}
-
-######
-
 

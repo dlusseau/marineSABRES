@@ -6,22 +6,30 @@
 
 # Load packages ###############################
 
-library(ggplot2)
-library(igraph)
+# library(ggplot2)
+# library(igraph)
 # library(ggnet)
 library(BoolNet)
 library(stringr)
-library(reshape2)
+# library(reshape2)
+
+source('Funcs.R')
+
+group <- 'group2'
 
 # Load data ###############################
 
 # !!!! Select right folder
+
 # folder <- "C:/Users/davlu/OneDrive - Danmarks Tekniske Universitet/SABRES/PESTEL analyses/"
 folder <- "C:/Users/bmjv/OneDrive - Danmarks Tekniske Universitet/PESTEL analyses/"
+
 
 FCM2 <- read.csv(paste0(folder,"FCM_network_group2.csv"),
                  header = T, sep = ";", dec = ","
 )
+# Create directory where results are saved
+dir.create(paste0('./FCM matrix projections/res',group))
 
 # Quantitative analysis ##################################################
 
@@ -59,61 +67,20 @@ FCM2.sim[, 1] <- starting.value # First values are the input from stakeholders
 
 for (i in 2:1000) {
   # Each iteration the PESTLE matrix is multiplied with the previous outcome
-  FCM2.sim[, i] <- t(PESTLE.mat) %*% matrix((FCM2.sim[, i - 1]), ncol = 1)
+  FCM2.sim[, i] <- PESTLE.mat %*% matrix((FCM2.sim[, i - 1]), ncol = 1)
 }
 
-# head(FCM2.sim)
+## Figures ###############################
 
-## Explore the outcomes ###############################
-
-sim.melt <- melt(FCM2.sim)
-row.names(FCM2.sim) <- elements
-
-# This is now a dataframe with the elements (Var1) and values per iteration (Var2)
-
-## Plot of system dynamics over time ###############################
-
-ggplot(sim.melt, aes(x = log10(Var2), y = sign(value) * log10(abs(value)), colour = factor(Var1))) +
-  geom_path()
-
-# Plot of the cyclical fluctuations of all variables at the end of the timeseries
-ggplot(subset(sim.melt, Var2 > 950), aes(x = (Var2), y = sign(value) * log10(abs(value)), colour = factor(Var1))) +
-  geom_path()
-
-## Dimensions of the basin of attraction (PCA) ###############################
+plot.network(PESTLE.mat, group)
+plot.time.prog(sim.output = FCM2.sim, group)
 
 # PCA
-pca <- prcomp(t(FCM2.sim), scale = FALSE)
+pca.FCM2 <- prcomp(t(FCM2.sim), scale = FALSE)
 
-# Plot of PCA with arrows
-biplot(pca)
-
-# Plot to see if the 
-ggplot(as.data.frame(pca$x), aes(x = (PC1), y = (PC2))) +
-  geom_point() +
-  geom_path(arrow = arrow()) + #
-  theme_minimal()
-# This is a 'detracting node', the opposite form group 1 (attracting spiral)
-
-## Plot the network - not working for now#####################
-
-#### some some is going on with ggnet using network and not recognising igraph input
-
-FCM2.net <- graph_from_adjacency_matrix(
-  (PESTLE.mat),
-  mode = "directed",
-  weighted = TRUE
-)
-
-E(FCM2.net)$weights <- abs(E(FCM2.net)$weight) * 2
-E(FCM2.net)$sign <- sign(E(FCM2.net)$weight)
-E(FCM2.net)$color <- "blue"
-E(FCM2.net)$color[E(FCM2.net)$sign < 0] <- "red"
-
-ggnet2(FCM2.net, label = TRUE, label.size = 4, arrow.size = 15, arrow.gap = 0.02, edge.color = "color", edge.size = "weights")
+plot.PCA(pca = pca.FCM2, group)
 
 ## Stability of graph Laplacian a la Brownski #################################
-### 
 
 PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
 ## and it works as sumRows(sdglowL)= array(0)
@@ -155,37 +122,21 @@ write.csv(boolean.df, file = paste0(folder, filename, ".csv"), row.names = F, qu
 
 ## Load network and obtain states ##################################################
 
-pestle_boolean <- loadNetwork(paste0(folder, filename, ".csv"))
-states <- getAttractors(pestle_boolean)
+pestle_boolean2 <- loadNetwork(paste0(folder, filename, ".csv"))
+states.pestle2 <- getAttractors(pestle_boolean2)
 
-state.map <- plotStateGraph(states, layout = layout.fruchterman.reingold, plotIt = FALSE)
-vertex_attr(state.map, index = 1)
-table(V(state.map)$color)
+# Simple graph
+plot.state.map(states = states.pestle2,group = group)
 
-V(state.map)$degree <- degree(state.map)
-V(state.map)$attractor <- "no"
-V(state.map)$attractor[V(state.map)$frame.color == "#000000FF"] <- "yes"
-
-V(state.map)$color2 <- str_sub(V(state.map)$color, end = -3)
-
-E(state.map)$width <- 1
-E(state.map)$lty <- 1
-
-E(state.map)$color2 <- str_sub(E(state.map)$color, end = -3)
-
-core.state <- subgraph(state.map, which(V(state.map)$degree > 0))
-
-plot(state.map, layout = layout.fruchterman.reingold, vertex.size = 2, edge.arrow.size = 0.5, edge.width = 1)
-
-# Write graph: fial figure will be made in Gephi
+# Write graph: final figure will be made in Gephi
 write_graph(
   state.map,
   file = paste0(folder,"pestle2_boolean.graphml"),
   format = "graphml"
 )
 
-
+# Print states
 trans.tab <- getTransitionTable(states)
-# plotStateGraph(states)
+# plot.state.graph(states)
 print(getBasinOfAttraction(states, 1))
 
