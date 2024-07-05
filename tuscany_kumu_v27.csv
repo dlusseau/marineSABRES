@@ -1,0 +1,57 @@
+From,To,Label,strength
+SST,Carbon sequestration,-,Medium Negative
+Area of P. oceanica habitat disturbed or lost,P.oceanica status,-,Strong Negative
+Vessel movements in the MPA,Marine animals killed or injured,+,Medium Positive
+Area of P. oceanica habitat disturbed or lost,Food web dynamics,-,Medium Negative
+Recreation (number of tourist presences),Artisanal fishing activity,+,Weak Positive
+Aesthetic benefit (bathing waters),Recreation (number of tourist presences),+,Medium Positive
+SST,Biomass of reef fishes,-,Medium Negative
+Biomass of reef fishes,Fish landed for human consumption,+,Medium Positive
+Marine animals killed or injured,Food web dynamics,-,Weak Negative
+Area of P. oceanica habitat disturbed or lost,Turbidity (mg/l),+,Weak Positive
+SST,Coastal protection & Carbon sequestration,-,Medium Negative
+Extension of natural habitats,Recreation (number of tourist presences),-,Medium Negative
+% of bathing waters with an excellent status,Employment rate (%),+,
+P.oceanica meadows (km2),Extension of natural habitats,+,
+Employment rate (%),Resident population on the islands,+,Weak Positive
+Coastal protection & Carbon sequestration,Aesthetic benefit (bathing waters),+,Weak positive
+Vessel movements in the MPA,Input of litter & nutrient discharge,+,Weak Positive
+Resident population on the islands,Artisanal fishing activity,+,Medium Positive
+P.oceanica status,Carbon sequestration,+,Weak Positive
+Marine heatwaves,P.oceanica status,-,Weak Negative
+Licenses for diving access to  MPA,Vessel movements in the MPA,+,Weak Positive
+Recreation (number of tourist presences),Vessel movements in the MPA,+,Medium Positive
+Turbidity (mg/l),Carbon sequestration,-,Weak Negative
+Biomass of species removed,Marine animals killed or injured,+,Weak Positive
+Input of litter & nutrient discharge,Turbidity (mg/l),+,
+Presence of non-indigenous species,Food web dynamics,-,Weak Negative
+Licenses for diving access to  MPA,Potential anchorages,+,Medium Positive
+Input of litter & nutrient discharge,Food web dynamics,-,Weak Negative
+Biomass of reef fishes,Employment rate (%),+,Medium Positive
+Employment rate (%),Licenses for diving access to  MPA,+,Medium Positive
+Resident population on the islands,Biomass of species removed,+,Weak Positive
+Potential anchorages,Area of P. oceanica habitat disturbed or lost,+,Strong Positive
+P.oceanica meadows (km2),Fish landed for human consumption,+,Medium Positive
+Artisanal fishing activity,Marine animals killed or injured,+,Medium Positive
+P.oceanica status,Biomass of reef fishes,+,Medium Positive
+Resident population on the islands,Potential anchorages,+,Medium Positive
+P.oceanica meadows (km2),Aesthetic benefit (bathing waters),+,Medium Positive
+Turbidity (mg/l),P.oceanica meadows (km2),-,Medium Negative
+Recreation (number of tourist presences),Biomass of species removed,+,Weak Positive
+Aesthetic benefit (bathing waters),Licenses for diving access to  MPA,+,Strong positive
+Recreation (number of tourist presences),Potential anchorages,+,Strong Positive
+Rent cost for housing,Resident population on the islands,-,Strong Negative
+Vessel movements in the MPA,Presence of non-indigenous species,+,Strong Positive
+% of bathing waters with an excellent status,Aesthetic benefit (bathing waters),+,Medium Positive
+Rent cost for housing,Recreation (number of tourist presences),-,Weak Negative
+CO2 emission,Marine heatwaves,+,Strong Positive
+Extension of natural habitats,Licenses for diving access to  MPA,+,Medium Positive
+SST,P.oceanica meadows (km2),-,Medium Negative
+Turbidity (mg/l),Coastal protection & Carbon sequestration,-,Weak Negative
+Fish landed for human consumption,Resident population on the islands,+,Weak Positive
+Marine heatwaves,SST,+,Strong positive
+Food web dynamics,Biomass of reef fishes,+,Medium Positive
+P.oceanica status,% of bathing waters with an excellent status,+,Weak Positive
+Input of litter & nutrient discharge,P.oceanica status,-,
+Resident population on the islands,Vessel movements in the MPA,+,Medium Positive
+P.oceanica status,Coastal protection & Carbon sequestration,+,Strong positive
