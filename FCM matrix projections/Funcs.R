@@ -82,14 +82,11 @@ plot.time.prog <- function(sim.output, group, save.plot = TRUE,
 
 ## Dimensions of the basin of attraction (PCA) ###############################
 
-plot.PCA <- function(sim.output, group, save.plot = TRUE){
+plot.PCA <- function(pca, group, save.plot = TRUE){
   # library("devtools")
   # install_github("kassambara/factoextra")
   
   require(factoextra)
-  
-  # PCA
-  pca <- prcomp(t(sim.output), scale = TRUE)
   
   output.folder <- paste0('./FCM matrix projections/res',group)
   file.name <- 'pca'
