@@ -14,6 +14,8 @@ library(stringr)
 
 source('~./FCM matrix projection/Funcs.R')
 
+source(here::here('subdirectory', 'functions.R'))
+
 group <- 'group1'
 
 # Load data ###############################
