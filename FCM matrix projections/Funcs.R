@@ -63,23 +63,25 @@ plot.network <- function (origin.mat = PESTLE.mat, group, save.plot = TRUE){
   E(FCM1.net)$sign <- sign(E(FCM1.net)$weight)
   E(FCM1.net)$color <- "dodgerblue"
   E(FCM1.net)$color[E(FCM1.net)$sign < 0] <- "darkorange1"
+
+  p.net <-  ggnet2(FCM1.net, label = TRUE, label.size = 4, 
+                   arrow.size = 15, arrow.gap = 0.02, 
+                   edge.color = "color", edge.size = "weights")
   
   output.folder <- paste0('./FCM matrix projections/res',group)
   file.name <- 'network'
   tiff.dim <- c(1500, 1000)
-  
-  if(save.plot) tiff(file.path(output.folder, paste0(file.name, ".tiff")),
+
+    if(save.plot) tiff(file.path(output.folder, paste0(file.name, ".tiff")),
                      width = tiff.dim[1], height = tiff.dim[2],
                      units = "px", pointsize = 12,  res = 300,
                      compression=c("lzw"))
-  
   print(
-  ggnet2(FCM1.net, label = TRUE, label.size = 4, 
-         arrow.size = 15, arrow.gap = 0.02, 
-         edge.color = "color", edge.size = "weights")
+    p.net
   )
-  
   if(save.plot) dev.off()
+  
+  return(p.net)
 }
 
 ## Plot of system dynamics over time ###############################
@@ -95,6 +97,15 @@ plot.time.prog <- function(sim.output, group, save.plot = TRUE,
   sim.melt <- melt(sim.output)
   
   # This is now a dataframe with the elements (Var1) and values per iteration (Var2)
+  p.time <-  ggplot(sim.melt, aes(x = Var2, 
+                                  y = value, 
+                                  colour = factor(Var1))) +
+    geom_path()+
+    scale_colour_brewer(palette = "Set3") +
+    xlab('Time')+
+    ylab('Progress')+
+    labs(colour='Element')+
+    theme_minimal()
   
   output.folder <- paste0('./FCM matrix projections/res',group)
   file.name <- 'progress'
@@ -105,20 +116,13 @@ plot.time.prog <- function(sim.output, group, save.plot = TRUE,
                      units = "px", pointsize = 12,  res = 300,
                      compression=c("lzw"))
   
-    print(
-    ggplot(sim.melt, aes(x = log10(Var2), 
-                         y = sign(value) * log10(abs(value)), 
-                         colour = factor(Var1))) +
-      geom_path()+
-      scale_colour_brewer(palette = "Set3") +
-      xlab('log(Time)')+
-      ylab('Progress')+
-      labs(colour='Element')+
-      theme_minimal()
+  print(
+    p.time
   )
   
   if(save.plot) dev.off()
   
+  return(p.time)
 }
 
 ## Dimensions of the basin of attraction (PCA) ###############################
@@ -128,6 +132,18 @@ plot.PCA <- function(pca, group, save.plot = TRUE){
   # install_github("kassambara/factoextra")
   
   require(factoextra)
+  
+  biplot <- factoextra::fviz_pca_biplot(pca, title = ' ' , xlab = 'PC1', ylab = 'PC2')
+  
+  trajectory <- ggplot(as.data.frame(pca$x), aes(x = PC1, y = PC2)) +
+    geom_point(colour = "darkslategrey") +
+    geom_path(colour = "darkslategrey", #,
+              arrow =
+                arrow(angle = 15,
+                      ends = "last",
+                      type = "closed")
+    ) + 
+    theme_minimal()
   
   output.folder <- paste0('./FCM matrix projections/res',group)
   file.name <- 'pca'
@@ -140,7 +156,7 @@ plot.PCA <- function(pca, group, save.plot = TRUE){
   
   # Plot of PCA with arrows
   print(
-  factoextra::fviz_pca_biplot(pca, title = NULL, xlab = 'PC1', ylab = 'PC2')
+    biplot
   )  # biplot(pca)
   
   if(save.plot) dev.off()
@@ -158,19 +174,12 @@ plot.PCA <- function(pca, group, save.plot = TRUE){
   
   # Plot of the evolution of the state
   print(
-    ggplot(as.data.frame(pca$x), aes(x = PC1, y = PC2)) +
-    geom_point(colour = "darkslategrey") +
-    geom_path(colour = "darkslategrey", #,
-              arrow =
-                arrow(angle = 15,
-                      ends = "last",
-                      type = "closed")
-              ) + 
-    theme_minimal()
+    trajectory
   )
   
   if(save.plot) dev.off()
   
+  return(list(biplot, trajectory))
 }
 
 

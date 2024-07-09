@@ -13,7 +13,9 @@ library(BoolNet)
 library(stringr)
 # library(reshape2)
 
-source('Funcs.R')
+set.seed(123)
+
+source(here::here('FCM matrix projections', 'Funcs.R'))
 
 group <- 'group2'
 
@@ -31,7 +33,6 @@ FCM2 <- read.csv(paste0(folder,"FCM_network_group2.csv"),
 # Create directory where results are saved
 dir.create(paste0('./FCM matrix projections/res',group))
 
-# Quantitative analysis ##################################################
 
 ## Create initial conditions and PESTLE matrix ###############################
 
@@ -58,44 +59,6 @@ row.names(PESTLE.mat) <- elements
 for (i in 1:nrow(FCM2)) {
   PESTLE.mat[which(row.names(PESTLE.mat) == FCM2$ELEMENT[i]), which(colnames(PESTLE.mat) == FCM2$INFLUENCE[i])] <- FCM2$INFLUENCE.VALUE[i]
 }
-
-## Run simulation ###############################
-
-iter <- 1000
-FCM2.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
-FCM2.sim[, 1] <- starting.value # First values are the input from stakeholders
-
-for (i in 2:1000) {
-  # Each iteration the PESTLE matrix is multiplied with the previous outcome
-  FCM2.sim[, i] <- PESTLE.mat %*% matrix((FCM2.sim[, i - 1]), ncol = 1)
-}
-
-## Figures ###############################
-
-plot.network(PESTLE.mat, group)
-plot.time.prog(sim.output = FCM2.sim, group)
-
-# PCA
-pca.FCM2 <- prcomp(t(FCM2.sim), scale = FALSE)
-
-plot.PCA(pca = pca.FCM2, group)
-
-## Stability of graph Laplacian a la Brownski #################################
-
-PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
-## and it works as sumRows(sdglowL)= array(0)
-
-# need to get it the right way around the diag sum is in-strength
-
-# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
-eigen(PESTLE.Lap)
-
-# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
-# Therefore everything moves into the same direction; any disturbance will 
-# likely have very little effect on the system.
-
-# The dominant (largest) eigenvalue indicates the dominant state
-# The corresponding eigenvector indicates the rank of the PESTLE factors
 
 # Boolean analysis ##################################################
 
@@ -128,6 +91,9 @@ states.pestle2 <- getAttractors(pestle_boolean2)
 # Simple graph
 plot.state.map(states = states.pestle2,group = group)
 
+state.map <- plotStateGraph(states.pestle2, layout = layout.fruchterman.reingold, plotIt = FALSE)
+
+
 # Write graph: final figure will be made in Gephi
 write_graph(
   state.map,
@@ -136,7 +102,46 @@ write_graph(
 )
 
 # Print states
-trans.tab <- getTransitionTable(states)
+# trans.tab <- getTransitionTable(states)
 # plot.state.graph(states)
-print(getBasinOfAttraction(states, 1))
+# print(getBasinOfAttraction(states, 1))
 
+
+# Quantitative analysis ##################################################
+## Run simulation ###############################
+
+FCM2.sim <- simu(starting.values = starting.value, matrix.elems= PESTLE.mat)
+
+## Figures ###############################
+
+p.net.gr2 <- plot.network(PESTLE.mat, group)
+p.time.gr2 <- plot.time.prog(sim.output = FCM2.sim, group)
+
+# PCA
+pca.FCM2 <- prcomp(t(FCM2.sim), scale = FALSE)
+
+p.pca.gr2 <- plot.PCA(pca = pca.FCM2, group)
+
+p.pca.gr2[[1]]
+p.pca.gr2[[2]]
+
+## Stability of graph Laplacian a la Brownski #################################
+
+PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
+## and it works as sumRows(sdglowL)= array(0)
+
+# need to get it the right way around the diag sum is in-strength
+
+# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
+eigen(PESTLE.Lap)
+
+# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
+# Therefore everything moves into the same direction; any disturbance will 
+# likely have very little effect on the system.
+
+# The dominant (largest) eigenvalue indicates the dominant state
+# The corresponding eigenvector indicates the rank of the PESTLE factors
+
+## Resilience #################################
+
+FCM2.sim.resilience <- resilience.detracting.node.exp(FCM.sim = FCM2.sim, logged = FALSE)

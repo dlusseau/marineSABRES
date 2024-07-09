@@ -17,7 +17,9 @@ library(BoolNet)
 library(stringr)
 # library(reshape2)
 
-source('Funcs.R')
+set.seed(123)
+
+source(here::here('FCM matrix projections', 'Funcs.R'))
 
 # Load data ###############################
 
@@ -43,7 +45,6 @@ group <- 'group3a'
 # Create directory where results are saved
 dir.create(paste0('./FCM matrix projections/res',group))
 
-# a. Quantitative analysis ##################################################
 
 ## Create initial conditions and PESTLE matrix ###############################
 
@@ -54,11 +55,11 @@ dir.create(paste0('./FCM matrix projections/res',group))
 # "INFLUENCE.VALUE" = Agreed, signed and weighted influence from each PESTLE element onto the others
 
 # Create PESTLE elements for FCM3a
-elements <- c(unique(FCM3a$ELEMENT))
+elements <- c(unique(FCM3$ELEMENT))
 
 # Extract starting condition of each PESTLE element 
-starting.value <- FCM3a$ELEMENT.VALUE[!duplicated(FCM3a$ELEMENT)]
-names(starting.value) <- FCM3a$ELEMENT[!duplicated(FCM3a$ELEMENT)]
+starting.value <- FCM3$ELEMENT.VALUE[!duplicated(FCM3$ELEMENT)]
+names(starting.value) <- FCM3$ELEMENT[!duplicated(FCM3$ELEMENT)]
 starting.value <- t(t(starting.value))
 
 # Create a matrix of zeros with 'elements'
@@ -70,44 +71,6 @@ row.names(PESTLE.mat) <- elements
 for (i in 1:nrow(FCM3a)) {
   PESTLE.mat[which(row.names(PESTLE.mat) == FCM3a$ELEMENT[i]), which(colnames(PESTLE.mat) == FCM3a$INFLUENCE[i])] <- FCM3a$INFLUENCE.VALUE[i]
 }
-
-## Run simulation ###############################
-
-iter <- 1000
-FCM3a.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
-FCM3a.sim[, 1] <- starting.value # First values are the input from stakeholders
-
-for (i in 2:1000) {
-  # Each iteration the PESTLE matrix is multiplied with the previous outcome
-  FCM3a.sim[, i] <- PESTLE.mat %*% matrix((FCM3a.sim[, i - 1]), ncol = 1)
-}
-
-## Figures ###############################
-
-plot.network(PESTLE.mat, group)
-plot.time.prog(sim.output = FCM3a.sim, group)
-
-# PCA
-pca.FCM3a <- prcomp(t(FCM3a.sim), scale = FALSE)
-
-plot.PCA(pca = pca.FCM3a, group)
-
-## Stability of graph Laplacian a la Brownski #################################
-
-PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
-## and it works as sumRows(sdglowL)= array(0)
-
-# need to get it the right way around the diag sum is in-strength
-
-# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
-eigen(PESTLE.Lap)
-
-# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
-# Therefore everything moves into the same direction; any disturbance will 
-# likely have very little effect on the system.
-
-# The dominant (largest) eigenvalue indicates the dominant state
-# The corresponding eigenvector indicates the rank of the PESTLE factors
 
 # a. Boolean analysis ##################################################
 
@@ -140,6 +103,10 @@ states.pestle3a <- getAttractors(pestle_boolean3a)
 # Simple graph
 plot.state.map(states = states.pestle3a,group = group)
 
+
+state.map <- plotStateGraph(states.pestle3a, layout = layout.fruchterman.reingold, plotIt = FALSE)
+
+
 # Write graph: final figure will be made in Gephi
 write_graph(
   state.map,
@@ -148,9 +115,46 @@ write_graph(
 )
 
 # Print states
-trans.tab <- getTransitionTable(states)
-plot.state.graph(states)
-print(getBasinOfAttraction(states, 1))
+# trans.tab <- getTransitionTable(states)
+# plot.state.graph(states)
+# print(getBasinOfAttraction(states, 1))
+
+# a. Quantitative analysis ##################################################
+
+## Run simulation ###############################
+
+FCM3a.sim <- simu(starting.values = starting.value, matrix.elems= PESTLE.mat)
+
+## Figures ###############################
+
+p.net.gr3a <- plot.network(PESTLE.mat, group)
+p.time.gr3a <- plot.time.prog(sim.output = FCM3a.sim, group)
+
+# PCA
+pca.FCM3a <- prcomp(t(FCM3a.sim), scale = FALSE)
+
+p.pca.gr3a <- plot.PCA(pca = pca.FCM3a, group)
+
+p.pca.gr3a[[1]]
+p.pca.gr3a[[2]]
+
+## Stability of graph Laplacian a la Brownski #################################
+
+PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
+## and it works as sumRows(sdglowL)= array(0)
+
+# need to get it the right way around the diag sum is in-strength
+
+# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
+eigen(PESTLE.Lap)
+
+# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
+# Therefore everything moves into the same direction; any disturbance will 
+# likely have very little effect on the system.
+
+# The dominant (largest) eigenvalue indicates the dominant state
+# The corresponding eigenvector indicates the rank of the PESTLE factors
+
 
 ############################################################################
 ## OPTION B
@@ -160,8 +164,6 @@ print(getBasinOfAttraction(states, 1))
 group <- 'group3b'
 # Create directory where results are saved
 dir.create(paste0('./FCM matrix projections/res',group))
-
-# Quantitative analysis ##################################################
 
 ## Create initial conditions and PESTLE matrix ###############################
 
@@ -189,41 +191,7 @@ for (i in 1:nrow(FCM3b)) {
   PESTLE.mat[which(row.names(PESTLE.mat) == FCM3b$ELEMENT[i]), which(colnames(PESTLE.mat) == FCM3b$INFLUENCE[i])] <- FCM3b$INFLUENCE.VALUE[i]
 }
 
-## Run simulation ###############################
-
-iter <- 1000
-FCM3b.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
-FCM3b.sim[, 1] <- starting.value # First values are the input from stakeholders
-
-for (i in 2:1000) {
-  # Each iteration the PESTLE matrix is multiplied with the previous outcome
-  FCM3b.sim[, i] <- PESTLE.mat %*% matrix((FCM3b.sim[, i - 1]), ncol = 1)
-}
-
-## Figures ###############################
-
-plot.network(PESTLE.mat, group)
-plot.time.prog(sim.output = FCM3b.sim, group)
-plot.PCA(FCM3b.sim, group)
-
-## Stability of graph Laplacian a la Brownski #################################
-
-PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
-## and it works as sumRows(sdglowL)= array(0)
-
-# need to get it the right way around the diag sum is in-strength
-
-# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
-eigen(PESTLE.Lap)
-
-# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
-# Therefore everything moves into the same direction; any disturbance will 
-# likely have very little effect on the system.
-
-# The dominant (largest) eigenvalue indicates the dominant state
-# The corresponding eigenvector indicates the rank of the PESTLE factors
-
-# a. Boolean analysis ##################################################
+# b. Boolean analysis ##################################################
 
 ## Transform to binary dataset ##################################################
 
@@ -265,4 +233,41 @@ write_graph(
 trans.tab <- getTransitionTable(states)
 # plot.state.graph(states)
 print(getBasinOfAttraction(states, 1))
+
+# Quantitative analysis ##################################################
+
+## Run simulation ###############################
+
+iter <- 1000
+FCM3b.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
+FCM3b.sim[, 1] <- starting.value # First values are the input from stakeholders
+
+for (i in 2:1000) {
+  # Each iteration the PESTLE matrix is multiplied with the previous outcome
+  FCM3b.sim[, i] <- PESTLE.mat %*% matrix((FCM3b.sim[, i - 1]), ncol = 1)
+}
+
+## Figures ###############################
+
+plot.network(PESTLE.mat, group)
+plot.time.prog(sim.output = FCM3b.sim, group)
+plot.PCA(FCM3b.sim, group)
+
+## Stability of graph Laplacian a la Brownski #################################
+
+PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
+## and it works as sumRows(sdglowL)= array(0)
+
+# need to get it the right way around the diag sum is in-strength
+
+# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
+eigen(PESTLE.Lap)
+
+# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
+# Therefore everything moves into the same direction; any disturbance will 
+# likely have very little effect on the system.
+
+# The dominant (largest) eigenvalue indicates the dominant state
+# The corresponding eigenvector indicates the rank of the PESTLE factors
+
 
