@@ -5,6 +5,47 @@
 ########################################################################
 ####   4 July 2024
 
+
+## Simulation  #####################
+
+simu <- function (iter = 1000, starting.values, matrix.elems,elements = c("P","E","S","T","L","EN")){
+  
+  FCM.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
+  FCM.sim[, 1] <- starting.values # First values are the input from stakeholders
+  
+  for (i in 2:iter) {
+    # Each iteration the PESTLE matrix is multiplied with the previous outcome
+    # FCM1.sim[, i] <- PESTLE.mat %*% matrix((FCM1.sim[, i - 1]), ncol = 1)
+    FCM.sim[,i] <- t(matrix.elems) %*% matrix((FCM.sim[,i-1]), ncol = 1)
+    
+  }
+  
+  return(FCM.sim)
+}
+
+## Resilience  #####################
+
+resilience.detracting.node.exp<-function(FCM.sim,elements =  c("P","E","S","T","L","EN"),tol=10^-5,logged=TRUE) {
+  require(reshape2)
+  
+  iter<-ncol(FCM.sim)
+  if (logged==TRUE) {
+    diff.mat<-log10(FCM.sim[,2:iter])-log10(FCM.sim[,1:(iter-1)])
+  } else {
+    diff.mat<-(FCM.sim[,2:iter])-(FCM.sim[,1:(iter-1)])
+  }
+  
+  stable.rate<-diff.mat[,(iter-1)]
+  res.mat<-diff.mat-stable.rate
+  res.mat.log<-(abs(res.mat)<tol)
+  resilience.elements<-apply(res.mat.log,1,function(x) which(x==TRUE)[1])
+  names(resilience.elements)<-elements
+  system.resilience<-max(resilience.elements)
+  
+  return(list(resilience.elements=resilience.elements, resilience = system.resilience,state=(FCM.sim[,iter])))
+} 
+
+
 ## Plot the network #####################
 
 plot.network <- function (origin.mat = PESTLE.mat, group, save.plot = TRUE){
