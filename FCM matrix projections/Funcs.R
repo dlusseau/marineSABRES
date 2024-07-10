@@ -25,24 +25,25 @@ simu <- function (iter = 1000, starting.values, matrix.elems,elements = c("P","E
 
 ## Resilience  #####################
 
-resilience.detracting.node.exp<-function(FCM.sim,elements =  c("P","E","S","T","L","EN"),tol=10^-5,logged=TRUE) {
+resilience.detracting.node.exp <- function(FCM.sim,elements =  c("P","E","S","T","L","EN"),tol=10^-5,logged=TRUE) {
   require(reshape2)
   
-  iter<-ncol(FCM.sim)
+  iter <- ncol(FCM.sim)
+  
   if (logged==TRUE) {
-    diff.mat<-log10(FCM.sim[,2:iter])-log10(FCM.sim[,1:(iter-1)])
+    diff.mat <- log10(FCM.sim[,2:iter]) - log10(FCM.sim[,1:(iter-1)])
   } else {
-    diff.mat<-(FCM.sim[,2:iter])-(FCM.sim[,1:(iter-1)])
+    diff.mat <- (FCM.sim[,2:iter]) - (FCM.sim[,1:(iter-1)])
   }
   
-  stable.rate<-diff.mat[,(iter-1)]
-  res.mat<-diff.mat-stable.rate
-  res.mat.log<-(abs(res.mat)<tol)
-  resilience.elements<-apply(res.mat.log,1,function(x) which(x==TRUE)[1])
-  names(resilience.elements)<-elements
-  system.resilience<-max(resilience.elements)
+  stable.rate <- diff.mat[,(iter-1)]
+  res.mat <- diff.mat - stable.rate
+  res.mat.log <- (abs(res.mat) < tol)
+  resilience.elements <- apply(res.mat.log,1,function(x) which(x==TRUE)[1])
+  names(resilience.elements) <- elements
+  system.resilience <- max(resilience.elements)
   
-  return(list(resilience.elements=resilience.elements, resilience = system.resilience,state=(FCM.sim[,iter])))
+  return(list(resilience.elements = resilience.elements, resilience = system.resilience,state = (FCM.sim[,iter])))
 } 
 
 
@@ -87,6 +88,7 @@ plot.network <- function (origin.mat = PESTLE.mat, group, save.plot = TRUE){
 ## Plot of system dynamics over time ###############################
 
 plot.time.prog <- function(sim.output, group, save.plot = TRUE, 
+                           xlog = FALSE, ylog = FALSE,
                            elements =  c("P","E","S","T","L","EN") ){
   
   require(reshape2)
@@ -106,6 +108,9 @@ plot.time.prog <- function(sim.output, group, save.plot = TRUE,
     ylab('Progress')+
     labs(colour='Element')+
     theme_minimal()
+  
+  if(xlog){   p.time <- p.time + scale_x_continuous(trans='log10') + xlab('log(Time)')}
+  if(ylog){   p.time <- p.time + scale_y_continuous(trans='log10') + ylab('log(Progress)')}
   
   output.folder <- paste0('./FCM matrix projections/res',group)
   file.name <- 'progress'
@@ -133,15 +138,47 @@ plot.PCA <- function(pca, group, save.plot = TRUE){
   
   require(factoextra)
   
-  biplot <- factoextra::fviz_pca_biplot(pca, title = ' ' , xlab = 'PC1', ylab = 'PC2')
+  #Our transformation function
+  scaleFUN <- function(x) sprintf("%.2f", x)
+  
+  biplot <- factoextra::fviz_pca_biplot(pca, 
+                                        title = ' ' , 
+                                        xlab = 'PC1', 
+                                        ylab = 'PC2', 
+                                        geom = c("point"),#, "text"
+                                        alpha.ind = 0.8, 
+                                        col.ind = "darkgrey",
+                                        col.var = 'dodgerblue',
+                                        label = 'var',
+                                        ggtheme = theme_minimal())+
+    # xlim( c(layer_scales(biplot)$x$get_limits()[1], layer_scales(biplot)$x$get_limits()[2]+ layer_scales(biplot)$x$get_limits()[2]*0.5))
+    scale_y_continuous(breaks = scales::breaks_extended(n = 2),
+                       labels = scales::label_number(scale = 1/10^181, 
+                                                     accuracy = 3)) +
+    scale_x_continuous(breaks = scales::breaks_extended(n = 2),
+                       labels = scales::label_number(scale = 1/10^196,
+                                                     accuracy = 3))
+  
+  biplot
+  
+  
+  
+  layer_scales(biplot)$x$get_limits()[1]
+
+  layer_scales(biplot)$y$get_limits() #-3.319612e+181  7.967070e+182
+  layer_scales(biplot)$x$get_limits() #-1.511836e+196  5.516300e+198
+  
+  
+  labels = label_number(accuracy = 1)
+  
   
   trajectory <- ggplot(as.data.frame(pca$x), aes(x = PC1, y = PC2)) +
-    geom_point(colour = "darkslategrey") +
-    geom_path(colour = "darkslategrey", #,
-              arrow =
-                arrow(angle = 15,
-                      ends = "last",
-                      type = "closed")
+    geom_point(colour = "dodgerblue") +
+    geom_path(colour = "dodgerblue"#, 
+              # arrow =
+              #   arrow(angle = 15,
+              #         ends = "last",
+              #         type = "closed")
     ) + 
     theme_minimal()
   
@@ -201,60 +238,151 @@ plot.state.map <- function(states, group, save.plot = TRUE){
                    plotIt = T)
   
   if(save.plot) dev.off()
-  
-  
-  # vertex_attr(states, index = 1)
-  # table(V(states)$color)
-  # 
-  # V(states)$degree <- degree(states)
-  # V(states)$attractor <- "no"
-  # V(states)$attractor[V(states)$frame.color == "#000000FF"] <- "yes"
-  # 
-  # V(states)$color2 <- str_sub(V(states)$color, end = -3)
-  # 
-  # E(states)$width <- 1
-  # E(states)$lty <- 1
-  # 
-  # E(states)$color2 <- str_sub(E(states)$color, end = -3)
-  # 
-  # core.state <- subgraph(states, which(V(states)$degree > 0))
-  # 
-  # plot(states, layout = layout.fruchterman.reingold, vertex.size = 2, 
-  #      edge.arrow.size = 0.5, edge.width = 1)
-  
+
 }
 
-## Matrix disturbances ###############################
+## Initial condition resilience sensitivity ###############################
 
-# TODO: Make this function applicable to multiple factors and magnitudes per factor
-
-matrix.dist <- function(elements = c("P","E","S","T","L","EN") ,
-                        starting.value, PESTLE.mat, group, 
-                        dist.element, dist.magnitude = 0.5, iter = 10000){
+initial.cond.sens <- function(matrix.elems, original.res, log.trans,
+                              elements = c("P","E","S","T","L","EN"), save.plot = TRUE) {
   
-  # Create specific result directory
-  dir.create(paste0('./FCM matrix projections/res/',group,'/sens/elem_',dist.element,'_magn_',dist.magnitude))
-
-  dist.element.index <- which(elements %in% dist.element)
+  sens.initial.conditions <- list()
+  res.initial.conditions <- list()
   
-  FCM1.sim <- matrix(NA,length(elements),iter)
-  FCM1.sim[,1] <- starting.value
+  # Include also the PESTLE elements in the df? Keep it simple for now
+  stability.initial.conditions.df <- data.frame(matrix(NA, nrow = 1000, ncol = 1))
+  colnames(stability.initial.conditions.df) <- 'resilience.diff'
   
-  for (i in 2:iter) {
-
-    disturbed <- FCM1.sim[,i-1]
-    disturbed[dist.element.index] <- disturbed[dist.element.index] + dist.magnitude
+  for(m in 1:1000){
     
-    FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((disturbed), ncol = 1)
- 
+    sens.initial.conditions[[m]] <- simu(starting.values = runif(6,0,10), matrix.elems = matrix.elems)
+    res.initial.conditions[[m]] <- resilience.detracting.node.exp(FCM.sim = sens.initial.conditions[[m]], logged = log.trans)
+    
+    # Save resilience results in dataframe 
+    stability.initial.conditions.df[m,1] <-  res.initial.conditions[[m]]$resilience
+    
   }
   
-  print(paste('Matrix element',dist.element,'is distrubed with a magnitude of',dist.magnitude))
+  # Plot first run 
+  # plot.time.prog(sens.initial.conditions[[1]], diff = F, group, save.plot = T, 
+  #                xlims = c(0,50),file.name = 'sens_initial_cond_progress')
+  # plot.time.prog(sens.initial.conditions[[1]], diff = T, group, save.plot = T, 
+  #                xlims = c(0,50),file.name = 'sens_initial_cond_progress_diff')
   
-  plot.network(PESTLE.mat)
-  plot.time.prog(FCM1.sim)
-  plot.PCA(FCM1.sim)
+  # Plot distribution of resilience changes
+  diff.main.init.conditions <- stability.initial.conditions.df - original.res$resilience
+
+  # Density plot
+  ini.cond.resilience <- ggplot(data = diff.main.init.conditions, aes(x = resilience.diff)) +
+    geom_density(colour = "dodgerblue", fill = "dodgerblue", alpha = 0.7) +
+    theme_minimal() +
+    xlab('Resilience (difference compared to baseline)')+
+    ylab('Density') 
   
+  output.folder <- paste0('./FCM matrix projections/res',group)
+  file.name <- 'initial.condition.resilience'
+  tiff.dim <- c(2000, 1500)
+  
+  if(save.plot) tiff(file.path(output.folder, paste0(file.name, ".tiff")),
+                     width = tiff.dim[1], height = tiff.dim[2],
+                     units = "px", pointsize = 12,  res = 300,
+                     compression=c("lzw"))
+  
+  print(ini.cond.resilience)
+  
+  if(save.plot) dev.off()
+  
+  return(list(ini.cond.resilience, sens.initial.conditions,res.initial.conditions, stability.initial.conditions.df))
+}
+
+## System resilience sensitivity ###############################
+
+resilience.sens <- function(starting.values, matrix.elems, original.res, log.trans,
+                            elements = c("P","E","S","T","L","EN"), save.plot = TRUE) {
+  
+  # Create empty list to save results
+  sens.res <- list()
+  sens.res.elem <- list()
+  
+  # vector of all PESTLE matrix elements to disturb
+  dist.elems <- matrix.elems[which(matrix.elems != 0)]
+  # There are duplicates in this vector -- loop over positions of those elements 
+  duplicated(dist.elems)
+  
+  dist.elems.pos <- which(matrix.elems != 0, arr.ind = T)
+  
+  # Create df to save resilience results
+  sens.res.resilience.df <- data.frame(matrix(NA, nrow = 1000, ncol = length(dist.elems)))
+  colnames(sens.res.resilience.df) <- seq(1:length((dist.elems)))
+  
+  
+  for (i in 1:length(dist.elems)){
+    # print(i)
+    dist <- dist.elems[i] + rnorm(1000,0,0.01)
+    
+    for(j in 1:length(dist)){
+      # print(j)
+      
+      PESTLE.mat.dist <- matrix.elems
+      
+      PESTLE.mat.dist[dist.elems.pos[i,][1],dist.elems.pos[i,][2]] <- dist[j]
+      
+      # Simulation
+      simu.res <- simu(starting.values = starting.values, matrix.elems = PESTLE.mat.dist)
+      sens.res.elem[[j]] <- simu.res
+      
+      # Resilience
+      sens.res.resilience <- resilience.detracting.node.exp(FCM.sim = simu.res, logged = log.trans)
+      
+      # Save resilience results in dataframe 
+      sens.res.resilience.df[j,i] <-  sens.res.resilience$resilience
+      
+      # TODO:
+      # Save resilience results in dataframe PER PESTLE ELEMENT - report in one matrix per element
+      # sens.res.resilience.df[j,i] <-  sens.res.resilience$resilience
+      
+    }
+    # Save all simu outcomes in a list
+    sens.res[[i]] <- sens.res.elem
+  }
+  
+  # Difference between original and new matrix resilience.
+  diff.main <- sens.res.resilience.df - original.res$resilience
+  diff.main.melted <- melt(diff.main)
+  
+  # Include matrix positions
+  diff.main.melted$ELEMENT <- dist.elems.pos[diff.main.melted$variable,][,1]
+  diff.main.melted$INFLUENCE <- dist.elems.pos[diff.main.melted$variable,][,2]
+  
+  # Rename columns
+  colnames(diff.main.melted) <- c('dist.elem','value','ELEMENT','INFLUENCE')
+  
+  # Rename ELEMENT and INFLUENCE according to PESTLE elements
+  diff.main.melted$ELEMENT <- elements[diff.main.melted$ELEMENT]
+  diff.main.melted$INFLUENCE <- elements[diff.main.melted$INFLUENCE]
+  
+  res.sens <- ggplot(diff.main.melted, aes(x = value)) +
+    geom_density(colour = "dodgerblue", fill = "dodgerblue", alpha = 0.7) +
+    theme_minimal() +
+    xlab('Resilience (difference compared to baseline)')+
+    ylab('Density') +
+    facet_grid(factor(ELEMENT, levels=elements) ~ factor(INFLUENCE, levels=elements),
+               scales = 'free_y')
+  
+  output.folder <- paste0('./FCM matrix projections/res',group)
+  file.name <- 'system.resilience'
+  tiff.dim <- c(2000, 1500)
+  
+  if(save.plot) tiff(file.path(output.folder, paste0(file.name, ".tiff")),
+                     width = tiff.dim[1], height = tiff.dim[2],
+                     units = "px", pointsize = 12,  res = 300,
+                     compression=c("lzw"))
+  
+  print(res.sens)
+  
+  if(save.plot) dev.off()
+  
+  return(list(res.sens, sens.res, sens.res.resilience.df))
 }
 
 

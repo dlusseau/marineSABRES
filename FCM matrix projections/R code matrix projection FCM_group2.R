@@ -115,7 +115,8 @@ FCM2.sim <- simu(starting.values = starting.value, matrix.elems= PESTLE.mat)
 ## Figures ###############################
 
 p.net.gr2 <- plot.network(PESTLE.mat, group)
-p.time.gr2 <- plot.time.prog(sim.output = FCM2.sim, group)
+p.time.gr2 <- plot.time.prog(sim.output = FCM2.sim, group, xlog = T, ylog = T)
+p.time.gr2
 
 # PCA
 pca.FCM2 <- prcomp(t(FCM2.sim), scale = FALSE)
@@ -144,4 +145,23 @@ eigen(PESTLE.Lap)
 
 ## Resilience #################################
 
-FCM2.sim.resilience <- resilience.detracting.node.exp(FCM.sim = FCM2.sim, logged = FALSE)
+# TODO: make sure that logged = TRUE here
+
+FCM2.sim.resilience <- resilience.detracting.node.exp(FCM.sim = FCM2.sim, logged = TRUE)
+
+## Sensitivity initial conditions ###############################
+
+initial.cond.sens.group2 <- initial.cond.sens(matrix.elems = PESTLE.mat,
+                                              original.res = FCM2.sim.resilience,
+                                              log.trans = TRUE)
+
+## Sensitivity of PESTLE matrix elements ###############################
+
+# TODO:
+# Compare the difference in the resilience between the different elements
+
+resilience.sens.group2 <- resilience.sens(starting.values = starting.value, 
+                                          matrix.elems = PESTLE.mat,
+                                          original.res = FCM2.sim.resilience,
+                                          log.trans = TRUE)
+

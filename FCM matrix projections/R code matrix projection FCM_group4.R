@@ -146,3 +146,24 @@ eigen(PESTLE.Lap)
 # The dominant (largest) eigenvalue indicates the dominant state
 # The corresponding eigenvector indicates the rank of the PESTLE factors
 
+## Resilience #################################
+
+FCM4.sim.resilience <- resilience.detracting.node.exp(FCM.sim = FCM4.sim, logged = T)
+
+## Sensitivity initial conditions ###############################
+
+initial.cond.sens.group4 <- initial.cond.sens(matrix.elems = PESTLE.mat,
+                                               original.res = FCM4.sim.resilience,
+                                               log.trans = FALSE)
+
+## Sensitivity of PESTLE matrix elements ###############################
+
+# TODO:
+# Compare the difference in the resilience between the different elements
+
+resilience.sens.group4 <- resilience.sens(starting.values = starting.value, 
+                                           matrix.elems = PESTLE.mat,
+                                           original.res = FCM4.sim.resilience,
+                                           log.trans = FALSE)
+
+
