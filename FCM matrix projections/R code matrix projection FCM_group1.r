@@ -14,9 +14,9 @@ library(stringr)
 
 set.seed(123)
 
-source(here::here('subdirectory', 'functions.R'))
+source(here::here("subdirectory", "functions.R"))
 
-group <- 'group1'
+group <- "group1"
 
 # Load data ###############################
 
@@ -25,10 +25,10 @@ group <- 'group1'
 # folder <- "C:/Users/davlu/OneDrive - Danmarks Tekniske Universitet/SABRES/PESTEL analyses/"
 folder <- "C:/Users/bmjv/OneDrive - Danmarks Tekniske Universitet/PESTEL analyses/"
 
-FCM1 <- read.csv(paste0(folder,"FCM_network_group1.csv"), header = T)
+FCM1 <- read.csv(paste0(folder, "FCM_network_group1.csv"), header = T)
 
 # Create directory where results are saved
-dir.create(paste0('./FCM matrix projections/res',group))
+dir.create(paste0("./FCM matrix projections/res", group))
 
 # Quantitative analysis ##################################################
 
@@ -43,7 +43,7 @@ dir.create(paste0('./FCM matrix projections/res',group))
 # Create PESTLE elements
 elements <- c(unique(FCM1$ELEMENT))
 
-# Extract starting condition of each PESTLE element 
+# Extract starting condition of each PESTLE element
 starting.value <- FCM1$ELEMENT.VALUE[!duplicated(FCM1$ELEMENT)]
 names(starting.value) <- FCM1$ELEMENT[!duplicated(FCM1$ELEMENT)]
 starting.value <- t(t(starting.value))
@@ -74,11 +74,11 @@ for (i in 1:ncol(PESTLE.bin)) {
     negs <- paste0("!", negs)
   }
   all <- c(poss, negs)
-  
+
   boolean.df$factors[i] <- paste(all, collapse = "|")
 }
 
-filename <- paste0("PESTLE_bool_",group)
+filename <- paste0("PESTLE_bool_", group)
 write.csv(boolean.df, file = paste0(folder, filename, ".csv"), row.names = F, quote = FALSE)
 
 ## Load network and obtain states ##################################################
@@ -87,14 +87,14 @@ pestle_boolean1 <- loadNetwork(paste0(folder, filename, ".csv"))
 states.pestle1 <- getAttractors(pestle_boolean1)
 
 # Simple graph
-plot.state.map(states = states.pestle1,group = group)
+plot.state.map(states = states.pestle1, group = group)
 
 state.map <- plotStateGraph(states, layout = layout.fruchterman.reingold, plotIt = FALSE)
 
 # Write graph: final figure will be made in Gephi
 write_graph(
   state.map,
-  file = paste0(folder,"pestle1_boolean.graphml"),
+  file = paste0(folder, "pestle1_boolean.graphml"),
   format = "graphml"
 )
 
@@ -107,7 +107,7 @@ print(getBasinOfAttraction(states, 1))
 
 ## Run simulation ###############################
 
-FCM1.sim <- simu(starting.values = starting.value, matrix.elems= PESTLE.mat)
+FCM1.sim <- simu(starting.values = starting.value, matrix.elems = PESTLE.mat)
 
 ## Figures ###############################
 
@@ -138,14 +138,18 @@ FCM1.sim.resilience <- resilience.detracting.node.exp(FCM.sim = FCM1.sim, logged
 
 ## Sensitivity initial conditions ###############################
 
-sens.initial.conditions <- simu(starting.values = runif(6,0,10), matrix.elems = PESTLE.mat)
+sens.initial.conditions <- simu(starting.values = runif(6, 0, 10), matrix.elems = PESTLE.mat)
 
 resilience.detracting.node.exp(FCM.sim = sens.initial.conditions, logged = FALSE)
 
-plot.time.prog(sens.initial.conditions, diff = F, group, save.plot = T, 
-               xlims = c(0,50),file.name = 'sens_initial_cond_progress')
-plot.time.prog(sens.initial.conditions, diff = T, group, save.plot = T, 
-               xlims = c(0,50),file.name = 'sens_initial_cond_progress_diff')
+plot.time.prog(sens.initial.conditions,
+  diff = F, group, save.plot = T,
+  xlims = c(0, 50), file.name = "sens_initial_cond_progress"
+)
+plot.time.prog(sens.initial.conditions,
+  diff = T, group, save.plot = T,
+  xlims = c(0, 50), file.name = "sens_initial_cond_progress_diff"
+)
 
 
 ## Sensitivity of PESTLE matrix elements ###############################
@@ -162,7 +166,7 @@ dist <- runif(1000)
 
 # vector of all PESTLE matrix elements to disturb
 dist.elems <- PESTLE.mat[which(PESTLE.mat != 0)]
-# There are duplicates in this vector -- loop over positions of those elements 
+# There are duplicates in this vector -- loop over positions of those elements
 duplicated(dist.elems)
 
 dist.elems.pos <- which(PESTLE.mat != 0, arr.ind = T)
@@ -171,30 +175,29 @@ dist.elems.pos <- which(PESTLE.mat != 0, arr.ind = T)
 sens.res.resilience.df <- data.frame(matrix(NA, nrow = length(dist), ncol = length(dist.elems)))
 colnames(sens.res.resilience.df) <- seq(1:length((dist.elems)))
 
-for (i in 1:length(dist.elems)){
+for (i in 1:length(dist.elems)) {
   # print(i)
-  
-  for(j in 1:length(dist)){
+
+  for (j in 1:length(dist)) {
     # print(j)
-    
+
     PESTLE.mat.dist <- PESTLE.mat
-    
-    PESTLE.mat.dist[dist.elems.pos[i,][1],dist.elems.pos[i,][2]] <- sign(dist.elems[i])*dist[j]
-    
+
+    PESTLE.mat.dist[dist.elems.pos[i, ][1], dist.elems.pos[i, ][2]] <- sign(dist.elems[i]) * dist[j]
+
     # Simulation
     simu.res <- simu(starting.values = starting.value, matrix.elems = PESTLE.mat.dist)
     sens.res.elem[[j]] <- simu.res
-    
+
     # Resilience
     sens.res.resilience <- resilience.detracting.node.exp(FCM.sim = simu.res, logged = FALSE)
-    
-    # Save resilience results in dataframe 
-    sens.res.resilience.df[j,i] <-  sens.res.resilience$resilience
-    
+
+    # Save resilience results in dataframe
+    sens.res.resilience.df[j, i] <- sens.res.resilience$resilience
+
     # TODO:
-    # Save resilience results in dataframe PER PESTLE ELEMENT 
-    sens.res.resilience.df[j,i] <-  sens.res.resilience$resilience
-    
+    # Save resilience results in dataframe PER PESTLE ELEMENT
+    sens.res.resilience.df[j, i] <- sens.res.resilience$resilience
   }
   # Save all simu outcomes in a list
   sens.res[[i]] <- sens.res.elem
@@ -207,8 +210,8 @@ diff.main <- sens.res.resilience.df - FCM1.sim.resilience$resilience
 diff.main.melted <- melt(diff.main)
 
 # This is not right yet....
-diff.main.melted$ELEMENT <- dist.elems.pos[diff.main.melted$variable,][1] # rows
-diff.main.melted$INFLUENCE <- dist.elems.pos[diff.main.melted$variable,][2] # cols
+diff.main.melted$ELEMENT <- dist.elems.pos[diff.main.melted$variable, ][1] # rows
+diff.main.melted$INFLUENCE <- dist.elems.pos[diff.main.melted$variable, ][2] # cols
 
 # Plot
 ggplot(diff.main.melted, aes(x = )) +
@@ -231,9 +234,10 @@ facet_grid(rows = ELEMENT, cols = INFLUENCE)
 ### column is the starting point of the arrow
 ### and row is end point of the arrow
 
-matrix.dist(starting.value, PESTLE.mat, 
-            dist.element = 'P', dist.magnitude = 0.5, 
-            iter = 10000)
+matrix.dist(starting.value, PESTLE.mat,
+  dist.element = "P", dist.magnitude = 0.5,
+  iter = 10000
+)
 
 
 ######################################################
@@ -241,63 +245,55 @@ matrix.dist(starting.value, PESTLE.mat,
 
 ##### pressed disturbance
 
-iter=10000
-FCM1.sim<-matrix(NA,length(elements),iter)
-FCM1.sim[,1]<-starting.value
+iter <- 10000
+FCM1.sim <- matrix(NA, length(elements), iter)
+FCM1.sim[, 1] <- starting.value
 
-for ( i in 2:10000) {
-  
-  
-  disturbed<-FCM1.sim[,i-1]
-  disturbed[6]<-disturbed[6]+.5
-  disturbed[3]<-disturbed[3]+.5
-  
-  FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((disturbed), ncol = 1)
-  #FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((FCM1.sim[,i-1]), ncol = 1)
-  
+for (i in 2:10000) {
+  disturbed <- FCM1.sim[, i - 1]
+  disturbed[6] <- disturbed[6] + .5
+  disturbed[3] <- disturbed[3] + .5
+
+  FCM1.sim[, i] <- t(PESTLE.mat) %*% matrix((disturbed), ncol = 1)
+  # FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((FCM1.sim[,i-1]), ncol = 1)
 }
 
 
-row.names(FCM1.sim)<-elements
-sim.melt<-melt(FCM1.sim)
+row.names(FCM1.sim) <- elements
+sim.melt <- melt(FCM1.sim)
 
-ggplot(sim.melt,aes(x=log10(Var2),y=((value)),colour=factor(Var1)))+
+ggplot(sim.melt, aes(x = log10(Var2), y = ((value)), colour = factor(Var1))) +
   geom_path()
 
 
 
-ggplot(s
-       ,+ubset(sim.melt,Var2>900&Var2<990),aes(x=(Var2),y=((value)),colour=factor(Var1)))+
+ggplot(
+  s,
+  +ubset(sim.melt, Var2 > 900 & Var2 < 990), aes(x = (Var2), y = ((value)), colour = factor(Var1))
+) +
   geom_path()
 
 
 #####################
-###sensitivity
-sen.iter<-10000
-FCM1.sen.init<-data.frame(P=rep(NA,sen.iter),E=rep(NA,sen.iter),S=rep(NA,sen.iter),T=rep(NA,sen.iter),L=rep(NA,sen.iter),EN=rep(NA,sen.iter))
+### sensitivity
+sen.iter <- 10000
+FCM1.sen.init <- data.frame(P = rep(NA, sen.iter), E = rep(NA, sen.iter), S = rep(NA, sen.iter), T = rep(NA, sen.iter), L = rep(NA, sen.iter), EN = rep(NA, sen.iter))
 
 for (j in 1:sen.iter) {
-  
-  iter=1000
-  FCM1.sim<-matrix(NA,length(elements),iter)
-  FCM1.sim[,1]<-runif(6,0,1)
-  
-  for ( i in 2:iter) {
-    
-    
-    disturbed<-FCM1.sim[,i-1]
-    disturbed[6]<-disturbed[6]+.5
-    
-    FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((disturbed), ncol = 1)
-    #FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((FCM1.sim[,i-1]), ncol = 1)
-    
+  iter <- 1000
+  FCM1.sim <- matrix(NA, length(elements), iter)
+  FCM1.sim[, 1] <- runif(6, 0, 1)
+
+  for (i in 2:iter) {
+    disturbed <- FCM1.sim[, i - 1]
+    disturbed[6] <- disturbed[6] + .5
+
+    FCM1.sim[, i] <- t(PESTLE.mat) %*% matrix((disturbed), ncol = 1)
+    # FCM1.sim[,i]<-t(PESTLE.mat)%*%matrix((FCM1.sim[,i-1]), ncol = 1)
   }
-  
-  
-  FCM1.sen.init[j,]<-FCM1.sim[,iter]
-  
+
+
+  FCM1.sen.init[j, ] <- FCM1.sim[, iter]
 }
 
 ######
-
-
