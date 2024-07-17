@@ -678,7 +678,7 @@ participation_ratio <- function(LJ, RJ) { # Duan et al. 2024
 
 PR1 <- participation_ratio(LJ1, RJ1) # Politics has the broader reach
 # Legal is not connected
-PR1[6] <- PR1[5]              
+PR1[6] <- PR1[5]
 PR1[5] <- 0
 PR2 <- participation_ratio(LJ2, RJ2) # Economy has the broader reach
 PR3 <- participation_ratio(LJ3, RJ3) # Economy has the broader reach

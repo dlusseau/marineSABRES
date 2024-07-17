@@ -4,26 +4,30 @@
 ########################################################################
 ####   4 July 2024
 
-###### Create FCM matrix ######################
-
-
 FCM.mat <- function(FCM) {
   elements <- c(unique(FCM$ELEMENT))
-  
+
   starting.value <- FCM$ELEMENT.VALUE[!duplicated(FCM$ELEMENT)]
   names(starting.value) <- FCM$ELEMENT[!duplicated(FCM$ELEMENT)]
   starting.value <- t(t(starting.value))
-  
+
   PESTLE.mat <- matrix(0, length(elements), length(elements))
   colnames(PESTLE.mat) <- elements
   row.names(PESTLE.mat) <- elements
-  
+
   for (i in 1:nrow(FCM)) {
     PESTLE.mat[which(row.names(PESTLE.mat) == FCM$ELEMENT[i]), which(colnames(PESTLE.mat) == FCM$INFLUENCE[i])] <- FCM$INFLUENCE.VALUE[i]
   }
   return(list(PESTLE.mat = PESTLE.mat, starting.value = starting.value))
 }
 
+## Simulate matrix  #####################
+
+simulate.mat <- function(mat) {
+  mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat))
+  
+  return(mat.sim)
+}
 
 ## Simulation  #####################
 
@@ -39,6 +43,7 @@ simu <- function(iter = 1000, starting.values, matrix.elems, elements = c("P", "
 
   return(FCM.sim)
 }
+
 
 ## Resilience  #####################
 
@@ -62,6 +67,8 @@ resilience.detracting.node.exp <- function(FCM.sim, elements = c("P", "E", "S", 
 
   return(list(resilience.elements = resilience.elements, resilience = system.resilience, state = (FCM.sim[, iter])))
 }
+
+
 
 
 ## Plot the network #####################
@@ -111,8 +118,7 @@ plot.network <- function(origin.mat = PESTLE.mat, group, save.plot = TRUE) {
 plot.time.prog <- function(sim.output, group, save.plot = TRUE,
                            xlims = NULL, ylims = NULL,
                            xlog = FALSE, ylog = FALSE,
-                           elements = c("P", "E", "S", "T", "L", "EN"),
-                           file.name = "progress") {
+                           elements = c("P", "E", "S", "T", "L", "EN")) {
   require(reshape2)
   require(ggplot2)
   require(RColorBrewer)
@@ -148,6 +154,7 @@ plot.time.prog <- function(sim.output, group, save.plot = TRUE,
   }
 
   output.folder <- paste0("./FCM matrix projections/res", group)
+  file.name <- "progress"
   tiff.dim <- c(1500, 1000)
 
   if (save.plot) {
@@ -171,38 +178,33 @@ plot.time.prog <- function(sim.output, group, save.plot = TRUE,
 
 plot.PCA <- function(pca, group,
                      xlims = NULL, ylims = NULL,
-                     log = FALSE,
+                     xlog = NULL, ylog = NULL,
                      save.plot = TRUE) {
   # library("devtools")
   # install_github("kassambara/factoextra")
 
   require(factoextra)
 
-  if (log) {
-    pca2 <- lapply(pca, function(x) {
-      -sign(x) * log10(abs(x))
-    })
-  }
-
-
-
   biplot <- factoextra::fviz_pca_biplot(pca,
     title = " ",
     xlab = "PC1",
     ylab = "PC2",
-    select.ind = NULL,
-    alpha.ind = 0,
+    geom = c("point"), # , "text"
+    alpha.ind = 0.8,
     col.ind = "darkgrey",
     col.var = "dodgerblue",
     label = "var",
     ggtheme = theme_minimal()
   ) +
-    scale_y_continuous(breaks = scales::breaks_extended(n = 3)) +
-    scale_x_continuous(breaks = scales::breaks_extended(n = 3))
+    scale_y_continuous(breaks = scales::breaks_extended(n = 2)) +
+    scale_x_continuous(breaks = scales::breaks_extended(n = 2))
 
   # Manipulation of axes
-  if (log) {
-    biplot <- biplot + xlab("log(Time)") + ylab("log(Progress)")
+  if (!is.null(xlog)) {
+    biplot <- biplot + scale_x_continuous(breaks = scales::breaks_extended(n = 2), trans = "log10") + xlab("log(Time)")
+  }
+  if (!is.null(ylog)) {
+    biplot <- biplot + scale_y_continuous(breaks = scales::breaks_extended(n = 2), trans = "log10") + ylab("log(Progress)")
   }
 
   if (!is.null(xlims)) {
@@ -230,9 +232,7 @@ plot.PCA <- function(pca, group,
       #         ends = "last",
       #         type = "closed")
     ) +
-    theme_minimal() +
-    scale_y_continuous(breaks = scales::breaks_extended(n = 3)) +
-    scale_x_continuous(breaks = scales::breaks_extended(n = 3))
+    theme_minimal()
 
   output.folder <- paste0("./FCM matrix projections/res", group)
   file.name <- "pca"
@@ -447,16 +447,3 @@ resilience.sens <- function(starting.values, matrix.elems, original.res, log.tra
 
   return(list(res.sens, sens.res, sens.res.resilience.df))
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
