@@ -118,8 +118,6 @@ resilience.detracting.node.exp <- function(FCM.sim, elements = c("P", "E", "S", 
 }
 
 
-
-
 ## Plot the network #####################
 
 plot.network <- function(origin.mat = PESTLE.mat, group, save.plot = TRUE) {
