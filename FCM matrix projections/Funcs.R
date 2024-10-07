@@ -25,7 +25,7 @@ FCM.mat <- function(FCM) {
 
 simulate.mat <- function(mat) {
   mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat))
-  
+
   return(mat.sim)
 }
 
@@ -47,12 +47,11 @@ simu <- function(iter = 1000, starting.values, matrix.elems, elements = c("P", "
 ## Boolean analysis  #####################
 
 ## Transform to binary dataset ##################################################
-bin.transform <- function(mat, folder, group){
-  
+bin.transform <- function(mat, folder, group) {
   # Create a binary matrix rather than a weighted one
   PESTLE.bin <- sign(mat)
   boolean.df <- data.frame(targets = factor(colnames(PESTLE.bin)), factors = NA)
-  
+
   # Create csv with 'or' (|) an negations (!)
   for (i in 1:ncol(PESTLE.bin)) {
     poss <- names(which(PESTLE.bin[, i] == 1))
@@ -61,13 +60,13 @@ bin.transform <- function(mat, folder, group){
       negs <- paste0("!", negs)
     }
     all <- c(poss, negs)
-    
+
     boolean.df$factors[i] <- paste(all, collapse = "|")
   }
-  
-  filename <- paste0("PESTLE_bool_",group)
+
+  filename <- paste0("PESTLE_bool_", group)
   write.csv(boolean.df, file = paste0(folder, filename, ".csv"), row.names = F, quote = FALSE)
-  
+
   return(boolean.df)
 }
 
@@ -77,14 +76,14 @@ pestle_boolean1 <- loadNetwork(paste0(folder, filename, ".csv"))
 states.pestle1 <- getAttractors(pestle_boolean1)
 
 # Simple graph
-plot.state.map(states = states.pestle1,group = group)
+plot.state.map(states = states.pestle1, group = group)
 
 state.map <- plotStateGraph(states.pestle1, layout = layout.fruchterman.reingold, plotIt = FALSE)
 
 # Write graph: final figure will be made in Gephi
 write_graph(
   state.map,
-  file = paste0(folder,"pestle1_boolean.graphml"),
+  file = paste0(folder, "pestle1_boolean.graphml"),
   format = "graphml"
 )
 
@@ -497,40 +496,39 @@ resilience.sens <- function(starting.values, matrix.elems, original.res, log.tra
 
 ## Greedy approach to state shift  #####################
 
-state.shift <- function(greed, iter, mat, tol = 0.000001, elements = c("P", "E", "S", "T", "L", "EN")){
-  
+state.shift <- function(greed, iter, mat, tol = 0.000001, elements = c("P", "E", "S", "T", "L", "EN")) {
   require(reshape2)
-  
+
   starting.value <- runif(nrow(mat), 0, 1) # Create random starting values between 0 and 1
-  
+
   FCM.obs <- simu(matrix.elems = mat, iter, starting.value) # Simulate outcomes
-  
+
   state.obs <- FCM.obs[, iter]
-  names(state.obs) <- elements 
-  
+  names(state.obs) <- elements
+
   state.sim <- array(NA, dim = c(length(state.obs), greed))
   rownames(state.sim) <- elements
-  
+
   mat.m <- melt(mat)
   mat.sim.df <- array(NA, dim = c(nrow(mat.m), greed + 2))
   mat.sim.df[, 1] <- mat.m$Var1
   mat.sim.df[, 2] <- mat.m$Var2
-  
+
   tic <- Sys.time()
-  
+
   for (i in 1:greed) {
     mat.sim <- simulate.mat(mat)
-    
+
     FCM <- simu(matrix.elems = mat.sim, iter, starting.value)
-    
+
     mat.sim.df[, i + 2] <- melt(mat.sim)$value
     state.sim[, i] <- FCM[, iter] - matrix(state.obs, ncol = 1)
   }
   toc <- Sys.time() - tic
-  
+
   state.sim.bin <- state.sim
   state.sim.bin[abs(state.sim.bin) < tol] <- 0
   state.sim.bin <- sign(state.sim.bin)
-  
+
   return(list(state.sim = state.sim, state.sim.bin = state.sim.bin, mat.sim.df = as.data.frame(mat.sim.df)))
 }
