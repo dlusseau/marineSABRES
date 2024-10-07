@@ -6,6 +6,7 @@
 library(tiff)
 library(patchwork)
 library(ggplot2)
+library(magick)
 
 output.folder <- "./FCM matrix projections"
 
@@ -26,12 +27,11 @@ p.net.gr1 + p.net.gr2 + p.net.gr3a + p.net.gr4 +
 dev.off()
 
 #### Boolean graphs
-library(magick)
 
-gr1 <- image_read("./FCM matrix projections/FCM_group1.png")|> image_ggplot() + ggtitle('A. Group 1')
-gr2 <- image_read("./FCM matrix projections/FCM_group2.png") |> image_ggplot() + ggtitle('B. Group 2')
-gr3 <- image_read("./FCM matrix projections/FCM_group3a.png") |> image_ggplot() + ggtitle('C. Group 3')
-gr4 <- image_read("./FCM matrix projections/FCM_group4.png") |> image_ggplot() + ggtitle('D. Group 4')
+gr1 <- image_read("./FCM matrix projections/FCM_group1.png") |> image_ggplot() + ggtitle("A. Group 1")
+gr2 <- image_read("./FCM matrix projections/FCM_group2.png") |> image_ggplot() + ggtitle("B. Group 2")
+gr3 <- image_read("./FCM matrix projections/FCM_group3a.png") |> image_ggplot() + ggtitle("C. Group 3")
+gr4 <- image_read("./FCM matrix projections/FCM_group4.png") |> image_ggplot() + ggtitle("D. Group 4")
 
 
 file.name <- "boolean_networks"
@@ -45,9 +45,11 @@ tiff(file.path(output.folder, paste0(file.name, ".tiff")),
 
 gr1 + gr2 + gr3 + gr4 +
   plot_layout(ncol = 2, guides = "collect") #+
-  # plot_annotation(tag_levels = "A", tag_suffix = ".")
 
 dev.off()
+
+
+
 
 #### Network progress over time and PCA results
 
