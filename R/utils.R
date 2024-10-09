@@ -152,6 +152,13 @@ boolean_analyses <- function(boolean.net, folder, filename) {
 
 # Function to simulate SES dynamics
 SES.simulate <- function(SES.mat, iter, folder, filename, title) {
+  
+  require(Polychrome)
+  require(ggplot2)
+  require(ggfortify)
+  require(ggpubr)
+  require(grid)
+  
   # Initialize a simulation matrix
   SES.sim <- matrix(NA, nrow(SES.mat), iter)
   SES.sim[, 1] <- runif(nrow(SES.mat), 0, 1) # Random initial values for the first iteration
@@ -180,17 +187,19 @@ SES.simulate <- function(SES.mat, iter, folder, filename, title) {
   pca <- prcomp(t(SES.sim), scale = FALSE) # Transpose for PCA analysis
 
   # Create a PCA plot
-  p1b <- ggplot2::autoplot(pca, label = FALSE, loadings.colour = "black", colour = "blue", loadings.label = TRUE, loadings.label.size = 6, loadings.label.colour = "black") +
+  p1b <- autoplot(pca, label = FALSE, loadings.colour = "black", colour = "blue", loadings.label = TRUE, loadings.label.size = 6, loadings.label.colour = "black") +
     geom_path(aes(x = PC1, y = PC2), colour = "blue", arrow = arrow(type = "closed", angle = 30, length = unit(5, "mm"))) +
     labs(x = "PC1", y = "PC2") +
     theme_minimal()
 
-  # Create a text grob for the title
+  # Create a text grob for the title on the side
   text1 <- textGrob(title, just = "centre", rot = 90, gp = gpar(fontsize = 20))
+  
+  plot <- ggarrange(text1, p1a, p1b, nrow = 1, ncol = 3, widths = c(.1, 1, 1))
 
   # Save the combined plots as a PNG file
   png(paste0(folder, filename, ".png"), width = 60, height = 35, units = "cm", res = 200)
-  ggarrange(text1, p1a, p1b, nrow = 1, ncol = 3, widths = c(.1, 1, 1))
+  print(plot) # Doesn't work with ggarrange directly into png
   dev.off() # Close the PNG device
 
   return(SES.sim) # Return the simulation results
@@ -286,17 +295,17 @@ time.simulate <- function(mat, iter, starting.value) {
 }
 
 # Function to observe state shifts in the SES dynamics
-state.shift <- function(greed, iter, mat, starting.value) {
+state.shift <- function(greed, iter, mat, starting.value, folder, file) {
   require(reshape2) # Load reshape2 for data manipulation
 
   # Simulate SES over specified iterations
   SES.obs <- time.simulate(mat, iter, starting.value)
   state.obs <- SES.obs[, iter] # Capture the final state
-  names(state.obs) <- colnames(tuscany.SES) # Name the state observations
+  names(state.obs) <- colnames(mat) # Name the state observations
 
   # Initialize an array to store state simulations
   state.sim <- array(NA, dim = c(length(state.obs), greed))
-  rownames(state.sim) <- colnames(tuscany.SES) # Set row names for states
+  rownames(state.sim) <- colnames(mat) # Set row names for states
 
   # Melt the original matrix for easier manipulation
   mat.m <- melt(mat)
