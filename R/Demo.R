@@ -20,12 +20,13 @@ source('~/marineSABRES/R/utils.R')
 ####################################################################################
 
 # TODO:
-# Make an overview of data sources and checks to do
+# Overview of input parameters
 
-# Output folder
+# Output folder where all (temporary) results are saved. This should be selected by the user. 
 folder <- "C:/Users/bmjv/OneDrive - Danmarks Tekniske Universitet/SABRES/loopanalyses/Macaronesia demo/"
 
 # Load data
+# Format : 
 macaronesia <- fread(paste0(folder,"macaronesia_isa5_May2024.csv"))
 
 ###################################################
@@ -35,6 +36,16 @@ macaronesia.SES <- data.load(df = macaronesia, folder = folder, graph.name = "Ma
 
 #########################################################
 ##### Qualitative (signed) analysis
+
+# INPUT
+# The SES matrix from the data.load function
+# The folder where output should be saved
+# Filenames for the .csv and graph
+
+# In one function:
+macaronesia.qual <- qualitative.analyses(macaronesia.SES, folder, 
+                                         filename.boolean.csv = "Macaronesia_boolean",
+                                         filename.boolean.graph = "Macaronesia_boolean2")
 
 # Stepwise:
 
@@ -46,10 +57,7 @@ macaronesia_boolean <- loadNetwork(paste0(folder, filename.boolean.csv, ".csv"))
 
 macaronesia_bool_ana <- boolean.analyses(macaronesia_boolean, folder, filename.boolean.graph)
 
-# In one function:
-macaronesia.qual <- qualitative.analyses(macaronesia.SES, folder, 
-                                         filename.boolean.csv = "Macaronesia_boolean",
-                                         filename.boolean.graph = "Macaronesia_boolean2")
+
 
 attractor1 <- data.frame(name = colnames(macaronesia.SES), boolean = as.numeric(macaronesia.qual$boolean.results[[4]][[1]]))
 
@@ -63,6 +71,13 @@ attractor1 <- data.frame(name = colnames(macaronesia.SES), boolean = as.numeric(
 # Use new Hamiltonian Bayesian models - likelihood-free functions?
 # We now go from random sampling - random forest. This could be faster if 
 # Try an dmak mcmc-abc working
+
+#####################################################################################
+
+# INPUT
+# The SES matrix from the data.load function
+# The folder where output should be saved
+# Filenames for the .csv and graph
 
 quantitative.analyses <- function(SES.mat, greed = 100, iter = 500, folder, filename.simu.figure = "macaronesia_weighted_projection", 
                                   title.simu = "Macaronesia SES (CLD)",filename.PR = "Macaronesia_participation_ratio",
