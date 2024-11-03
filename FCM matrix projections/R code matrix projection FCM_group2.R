@@ -13,9 +13,11 @@ library(BoolNet)
 library(stringr)
 # library(reshape2)
 
-source('Funcs.R')
+set.seed(123)
 
-group <- 'group2'
+source(here::here("FCM matrix projections", "Funcs.R"))
+
+group <- "group2"
 
 # Load data ###############################
 
@@ -25,13 +27,12 @@ group <- 'group2'
 folder <- "C:/Users/bmjv/OneDrive - Danmarks Tekniske Universitet/PESTEL analyses/"
 
 
-FCM2 <- read.csv(paste0(folder,"FCM_network_group2.csv"),
-                 header = T, sep = ";", dec = ","
+FCM2 <- read.csv(paste0(folder, "FCM_network_group2.csv"),
+  header = T, sep = ";", dec = ","
 )
 # Create directory where results are saved
-dir.create(paste0('./FCM matrix projections/res',group))
+dir.create(paste0("./FCM matrix projections/res", group))
 
-# Quantitative analysis ##################################################
 
 ## Create initial conditions and PESTLE matrix ###############################
 
@@ -44,7 +45,7 @@ dir.create(paste0('./FCM matrix projections/res',group))
 # Create PESTLE elements
 elements <- c(unique(FCM2$ELEMENT))
 
-# Extract starting condition of each PESTLE element 
+# Extract starting condition of each PESTLE element
 starting.value <- FCM2$ELEMENT.VALUE[!duplicated(FCM2$ELEMENT)]
 names(starting.value) <- FCM2$ELEMENT[!duplicated(FCM2$ELEMENT)]
 starting.value <- t(t(starting.value))
@@ -58,44 +59,6 @@ row.names(PESTLE.mat) <- elements
 for (i in 1:nrow(FCM2)) {
   PESTLE.mat[which(row.names(PESTLE.mat) == FCM2$ELEMENT[i]), which(colnames(PESTLE.mat) == FCM2$INFLUENCE[i])] <- FCM2$INFLUENCE.VALUE[i]
 }
-
-## Run simulation ###############################
-
-iter <- 1000
-FCM2.sim <- matrix(NA, length(elements), iter) # Matrix with NAs for each iteration
-FCM2.sim[, 1] <- starting.value # First values are the input from stakeholders
-
-for (i in 2:1000) {
-  # Each iteration the PESTLE matrix is multiplied with the previous outcome
-  FCM2.sim[, i] <- PESTLE.mat %*% matrix((FCM2.sim[, i - 1]), ncol = 1)
-}
-
-## Figures ###############################
-
-plot.network(PESTLE.mat, group)
-plot.time.prog(sim.output = FCM2.sim, group)
-
-# PCA
-pca.FCM2 <- prcomp(t(FCM2.sim), scale = FALSE)
-
-plot.PCA(pca = pca.FCM2, group)
-
-## Stability of graph Laplacian a la Brownski #################################
-
-PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
-## and it works as sumRows(sdglowL)= array(0)
-
-# need to get it the right way around the diag sum is in-strength
-
-# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
-eigen(PESTLE.Lap)
-
-# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
-# Therefore everything moves into the same direction; any disturbance will 
-# likely have very little effect on the system.
-
-# The dominant (largest) eigenvalue indicates the dominant state
-# The corresponding eigenvector indicates the rank of the PESTLE factors
 
 # Boolean analysis ##################################################
 
@@ -113,7 +76,7 @@ for (i in 1:ncol(PESTLE.bin)) {
     negs <- paste0("!", negs)
   }
   all <- c(poss, negs)
-  
+
   boolean.df$factors[i] <- paste(all, collapse = "|")
 }
 
@@ -126,17 +89,86 @@ pestle_boolean2 <- loadNetwork(paste0(folder, filename, ".csv"))
 states.pestle2 <- getAttractors(pestle_boolean2)
 
 # Simple graph
-plot.state.map(states = states.pestle2,group = group)
+plot.state.map(states = states.pestle2, group = group)
+
+state.map <- plotStateGraph(states.pestle2, layout = layout.fruchterman.reingold, plotIt = FALSE)
+
 
 # Write graph: final figure will be made in Gephi
 write_graph(
   state.map,
-  file = paste0(folder,"pestle2_boolean.graphml"),
+  file = paste0(folder, "pestle2_boolean.graphml"),
   format = "graphml"
 )
 
 # Print states
-trans.tab <- getTransitionTable(states)
+# trans.tab <- getTransitionTable(states)
 # plot.state.graph(states)
-print(getBasinOfAttraction(states, 1))
+# print(getBasinOfAttraction(states, 1))
 
+
+# Quantitative analysis ##################################################
+## Run simulation ###############################
+
+FCM2.sim <- simu(starting.values = starting.value, matrix.elems = PESTLE.mat)
+
+## Figures ###############################
+
+p.net.gr2 <- plot.network(PESTLE.mat, group)
+p.time.gr2 <- plot.time.prog(sim.output = FCM2.sim, group, xlog = T, ylog = T)
+p.time.gr2.subs <- plot.time.prog(sim.output = FCM2.sim, group, xlog = F, ylog = T, xlims = c(0, 200), file.name = "progress.subs")
+p.time.gr2.subs
+
+# PCA
+FCM2.sim.trans <- t(FCM2.sim)
+colnames(FCM2.sim.trans) <- elements
+pca.FCM2 <- prcomp(FCM2.sim.trans, scale = FALSE)
+
+p.pca.gr2 <- plot.PCA(pca = pca.FCM2, group)
+
+
+p.pca.gr2[[1]]
+p.pca.gr2[[2]]
+
+## Stability of graph Laplacian a la Brownski #################################
+
+PESTLE.Lap <- t(PESTLE.mat) - diag(rowSums(t(PESTLE.mat))) ## following Bronski & Deville 2014 SIAM Appl Math (signed graphs) contrary to the usual L=D-A
+## and it works as sumRows(sdglowL)= array(0)
+
+# need to get it the right way around the diag sum is in-strength
+
+# PESTLE.Lap <- diag(rowSums(t(PESTLE.mat))) - t(PESTLE.mat) # This is another notation of the laplacian, where the sign is the opposite of the previous Laplacian. This is however the 'formal' formulation
+eigen(PESTLE.Lap)
+
+# We don't have any antagonistic PESTLE elements (the eigenvalues are all negative or zero)
+# Therefore everything moves into the same direction; any disturbance will
+# likely have very little effect on the system.
+
+# The dominant (largest) eigenvalue indicates the dominant state
+# The corresponding eigenvector indicates the rank of the PESTLE factors
+
+## Resilience #################################
+
+# TODO: make sure that logged = TRUE here
+
+FCM2.sim.resilience <- resilience.detracting.node.exp(FCM.sim = FCM2.sim, logged = TRUE)
+
+## Sensitivity initial conditions ###############################
+
+initial.cond.sens.group2 <- initial.cond.sens(
+  matrix.elems = PESTLE.mat,
+  original.res = FCM2.sim.resilience,
+  log.trans = TRUE
+)
+
+## Sensitivity of PESTLE matrix elements ###############################
+
+# TODO:
+# Compare the difference in the resilience between the different elements
+
+resilience.sens.group2 <- resilience.sens(
+  starting.values = starting.value,
+  matrix.elems = PESTLE.mat,
+  original.res = FCM2.sim.resilience,
+  log.trans = TRUE
+)
