@@ -19,6 +19,8 @@ source('~/marineSABRES/R/utils.R')
 
 ####################################################################################
 
+# Use Tuscany instead?
+
 # TODO:
 # Overview of input parameters
 
@@ -79,6 +81,15 @@ attractor1 <- data.frame(name = colnames(macaronesia.SES), boolean = as.numeric(
 # The folder where output should be saved
 # Filenames for the .csv and graph
 
+greed = 100
+iter = 500
+filename.simu.figure = "macaronesia_weighted_projection" 
+title.simu = "Macaronesia SES (CLD)"
+filename.PR = "Macaronesia_participation_ratio"
+filename.greedy.res = "macaronesia_greedy_simulation.Rdata"
+indicators = c('Food Provision','MPA biodiversity','Residents')
+
+
 quantitative.analyses <- function(SES.mat, greed = 100, iter = 500, folder, filename.simu.figure = "macaronesia_weighted_projection", 
                                   title.simu = "Macaronesia SES (CLD)",filename.PR = "Macaronesia_participation_ratio",
                                   filename.greedy.res = "macaronesia_greedy_simulation.Rdata", indicators = c('Food Provision','MPA biodiversity','Residents'),
@@ -101,7 +112,7 @@ quantitative.analyses <- function(SES.mat, greed = 100, iter = 500, folder, file
   # Try an dmak mcmc-abc working
   
   
-  macaronesia.state.shift <- state.shift(macaronesia.SES, greed, iter, type = 'uniform', folder, filename.greedy.res)
+  macaronesia.state.shift <- state.shift(macaronesia.SES, greed, iter, type = 'uniform', folder, file = filename.greedy.res)
   
   tol <- 0.000001
 

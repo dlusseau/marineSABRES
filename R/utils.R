@@ -321,171 +321,237 @@ participation_ratio <- function(SES, folder, filename, title) {
 }
 
 # Function to simulate a matrix with random values based on the input matrix
-simulate.mat <- function(mat, type = c('uniform','ordinal')) {
-  # Create a matrix to store simulated values based on the input matrix
-  # Step-by-step explanation of the operations:
-  # 1. (mat != 0): Creates a boolean matrix where TRUE indicates non-zero elements in 'mat'.
-  # 2. 1 * (mat != 0): Converts the boolean matrix to a numeric matrix of 1s and 0s.
-  # 3. sign(mat): Returns the sign of each element in 'mat' (-1, 1, or 0).
-  # 4. matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat)): Creates a matrix of random numbers uniformly distributed between 0 and 1.
-  # 5. The final product yields a matrix where:
-  #    - Elements corresponding to zeros in 'mat' remain zero.
-  #    - Non-zero elements are multiplied by random numbers between 0 and 1, preserving their sign.
-  if(type == 'uniform'){
-    newmat <- matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat))
-  } else if (type == 'ordinal'){
-    vals <- c(0,0.25,0.5,0.75,1)
-    newmat <- matrix(sample(vals, prod(dim(mat)), replace = TRUE), nrow(mat), ncol(mat))
-  }
+
+# Change should be a number indicating the element, rangin between 1 and prod(dim(mat))
+
+simulate.mat <- function(mat, all = TRUE, change, type = c('uniform','ordinal'), ABC = FALSE, prior = NULL) {
+  #   # Create a matrix to store simulated values based on the input matrix
+  #   # Step-by-step explanation of the operations:
+  #   # 1. (mat != 0): Creates a boolean matrix where TRUE indicates non-zero elements in 'mat'.
+  #   # 2. 1 * (mat != 0): Converts the boolean matrix to a numeric matrix of 1s and 0s.
+  #   # 3. sign(mat): Returns the sign of each element in 'mat' (-1, 1, or 0).
+  #   # 4. matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat)): Creates a matrix of random numbers uniformly distributed between 0 and 1.
+  #   # 5. The final product yields a matrix where:
+  #   #    - Elements corresponding to zeros in 'mat' remain zero.
+  #   #    - Non-zero elements are multiplied by random numbers between 0 and 1, preserving their sign.
+  #   
+  draw <- c(0,0.25,0.5,0.75,1)
   
-  mat.sim <- 1 * (mat != 0) * sign(mat) * newmat
+  # if(ABC == TRUE){
+  #   # For now ABC can only be performed on the full matrix and with a uniform distribution
+  #   
+  #   mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(prior, nrow(mat), ncol(mat))
+  #   
+  # } else {
+    
+    if(all == TRUE){
+      
+      if(type == 'uniform'){
+        newmat <- matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat))
+      } else if (type == 'ordinal'){
+        newmat <- matrix(sample(draw, prod(dim(mat)), replace = TRUE), nrow(mat), ncol(mat))
+      }
+      
+      mat.sim <- 1 * (mat != 0) * sign(mat) * newmat
+      
+    } else {
+      
+      mat.sim <- mat
+      
+      if(type == 'uniform'){
+        mat.sim[as.matrix(change)] <- sign(mat[as.matrix(change)]) * runif(length(mat[as.matrix(change)]), 0, 1)
+        
+      } else if (type == 'ordinal'){
+        
+        mat.sim[as.matrix(change)] <- sign(mat[as.matrix(change)]) * sample(draw,length(mat[as.matrix(change)]),replace=T)
+        
+      }
+    }
+  # }
   
   return(mat.sim) # Return the simulated matrix
 }
 
-# Function to simulate the dynamics of the SES over a specified number of iterations
-# time.simulate <- function(mat, iter, starting.value) {
-#   # Initialize a matrix to store the simulated values with specified iterations
-#   SES.sim <- matrix(NA, nrow(mat), iter)
-#   SES.sim[, 1] <- starting.value # Set the starting values
-# 
-#   # Loop through the number of iterations to compute the SES dynamics
-#   for (i in 2:iter) {
-#     # Update values based on the SES matrix
-#     SES.sim[, i] <- t(mat) %*% matrix((SES.sim[, i - 1]), ncol = 1)
-#   }
-# 
-#   return(SES.sim) # Return the simulated SES matrix
-# }
+# Function to simulate effects on the matrix based on specified measures
+simulate.measure <- function(mat, measure, affected, indicators, lower, upper) {
+  # Generate random effects for the affected variables
+  measure.ef <- runif(length(affected), lower, upper)
+  
+  # Initialize a new row for the matrix
+  newrow <- matrix(rep(0, ncol(mat)), nrow = 1)
+  newrow[match(affected, colnames(mat))] <- measure.ef # Assign effects to affected variables
+  
+  # Add the new row to the original matrix
+  mat <- rbind(mat, newrow)
+  
+  # Generate random effects for the indicators
+  measure.af <- runif(length(indicators), lower, upper) 
+  
+  # Initialize a new column for the matrix
+  newcol <- matrix(rep(0, nrow(mat)), ncol = 1)
+  newcol[match(indicators, row.names(mat))] <- measure.af # Assign effects to indicators
+  
+  # Add the new column to the matrix
+  mat <- cbind(mat, newcol)
+  
+  # Name the new row and column appropriately
+  row.names(mat)[nrow(mat)] <- colnames(mat)[ncol(mat)] <- measure
+  
+  return(mat) # Return the modified matrix
+}
+
 
 # Function to observe state shifts in the SES dynamics
 state.shift <- function(mat, greed, iter, type = c('uniform','ordinal'),
-                        measure = NULL, affected = NULL, indicators = NULL, lower = -1, upper = 0,
+                        all = TRUE, change,
+                        measure = FALSE, affected = NULL, indicators = NULL, lower = -1, upper = 0,
                         folder, file) {
+  
   require(reshape2) # Load reshape2 for data manipulation
-
-  node.names <- row.names(mat)
-  7
-  mat.sim.df <- array(NA, dim = c(nrow(focus.mat.df), greed + 2))
-  mat.sim.df[, 1] <- focus.mat.df$from
-  mat.sim.df[, 2] <- focus.mat.df$to # can't deal with character and numbers in array, that's ok we keep it to factor levels, array is faster than df
-
-
-
-
-
+  
+  newnames <- row.names(mat)
+  
+  if(measure){
+    newnames <- c(newnames, measure) 
+    focus.mat.df <- data.frame(from = factor(c(rep(measure, length(newnames)), newnames)), to = factor(c(newnames, rep(measure, length(newnames)))))
+    
+    state.sim <- array(NA, dim = c(nrow(mat) + 1, greed))
+    rownames(state.sim) <- c(row.names(mat), measure)
+    
+    mat.sim.df <- array(NA, dim = c(nrow(focus.mat.df), greed + 2))
+    mat.sim.df[, 1] <- focus.mat.df$from
+    mat.sim.df[, 2] <- focus.mat.df$to 
+    
+  } else {
+    
+    SES.obs <- SES.simulate(SES.mat = mat.sim, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
+    state.obs <- SES.obs[, iter]
+    names(state.obs) <- newnames
+    
+    state.sim <- array(NA, dim = c(length(state.obs),greed))
+    rownames(state.sim) <- newnames
+    
+    mat.m <- melt(mat)
+    mat.sim.df <- array(NA, dim = c(nrow(mat.m), greed + 2))
+    mat.sim.df[,1] <- mat.m$Var1
+    mat.sim.df[,2] <- mat.m$Var2 
+  }
+  
   tic <- Sys.time() # Start the timer
   
   # Perform simulations based on the greed parameter
   for (i in 1:greed) {
     
+    # Either simulate a new measure (new link), change the weights of all links (uniform or ordinal) or change selected links
     if(measure){
       mat.sim <- simulate.measure(mat, measure, affected, indicators, lower = -1, upper = 0)
     } else {
-      mat.sim <- simulate.mat(mat, type) # Simulate a new matrix
+      mat.sim <- simulate.mat(mat, type = type, all, change) # Simulate a new matrix
     }
     
     SES <- SES.simulate(SES.mat = mat.sim, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
     
     mat.sim.df[, i + 2] <- melt(mat.sim)$value # Store the simulated matrix values
     state.sim[, i] <- apply(sign(SES[, (iter - 100):iter]), 1, prod) # Capture behavior over the last 101 steps
+    
+    if (i %in% c(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000)) { 
+      print(i) 
+      flush.console()
+    }
   }
   
   toc <- Sys.time() - tic # Record the elapsed time
   
   # To test
   save(state.sim, mat.sim.df, mat.m, mat, file = paste(folder, file, sep = "/")) # Save the results
-
+  
   return(list(state.sim = state.sim, mat.sim.df = mat.sim.df, mat.m = mat.m, mat = mat)) # Return simulation results
 }
 
+#############################################
 # With EasyABC - what is the target summary statistic? We can keep the prior distribution as is
 
+library(EasyABC)
 
-# Function to observe state shifts in the SES dynamics
-state.shift.ABC <- function(mat, greed, iter, type = c('uniform','ordinal'), folder, file) {
-  require(reshape2) # Load reshape2 for data manipulation
+# Create wrapper function, selecting: 
+# 1. the type of distribution (only uniform for now)
+# 2. the desirable outcomes
+# 3. the seed
+# 4. the number of iterations in the simulation (default = 500)
+# 5. 
 
-  # Simulate SES over specified iterations
-  SES.obs <- SES.simulate(SES.mat = mat, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
-  state.obs <- SES.obs[, iter] # Capture the final state
-  names(state.obs) <- colnames(mat) # Name the state observations
+mat = macaronesia.SES
 
-  # Initialize an array to store state simulations
-  state.sim <- array(NA, dim = c(length(state.obs), greed))
-  rownames(state.sim) <- colnames(mat) # Set row names for states
+x <- runif(length.vec,0,1)
+# prior should be input, all the rest are dimensions that should be given to the function externally
 
-  # Melt the original matrix for easier manipulation
-  mat.m <- melt(mat)
-  mat.sim.df <- array(NA, dim = c(nrow(mat.m), greed + 2))
-  mat.sim.df[, 1] <- mat.m$Var1 # Store the first variable
-  mat.sim.df[, 2] <- mat.m$Var2 # Store the second variable
+# This is not just abuot providing an element from the uniform distribution.
+# We want to identify WHICH element should be changed. 
+# Multiple ways forward: 
+# Rep x for the length of the matrix: then we can identify the size of the change (?)
+# Actually we should perform one of those algorithms on each of the matrix elements
 
-  tic <- Sys.time() # Start the timer
-
-  # Code prior distribution: with uniform distribution for now
-
-  my_prior = my_prior=list(list(c("runif",prod(dim(mat)),0,1), c("dunif",0,1))) #List of sampling function and density function
-  # There are no constraints to this distribution for now
-
-
-  # Perform simulations based on the greed parameter
-  for (i in 1:greed) {
-
-    # Input sampling
-    if(type == 'uniform'){
-      newmat <- matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat))
-    } else if (type == 'ordinal'){
-      vals <- c(0,0.25,0.5,0.75,1)
-      newmat <- matrix(sample(vals, prod(dim(mat)), replace = TRUE), nrow(mat), ncol(mat))
-    }
-
-    mat.sim <- 1 * (mat != 0) * sign(mat) * newmat
-
-    # Calculate results
-    SES <- SES.simulate(SES.mat = mat.sim, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
-
-    mat.sim.df[, i + 2] <- melt(mat.sim)$value # Store the simulated matrix values
-
-    # Target summary statistic
-    state.sim[, i] <- apply(sign(SES[, (iter - 100):iter]), 1, prod) # Capture behavior over the last 101 steps
+state.shift.ABC <- function(x, desirable.outcomes = indicators) {
+  
+  # mat.sim <- simulate.mat(mat, type = type, all, change, ABC = TRUE, prior = my_prior) # Simulate a new matrix -- this is where the prior comes into play
+  
+  # For now ABC can only be performed on the full matrix and with a uniform distribution 
+  # Working on an update within the simulate.mat function
+  mat = macaronesia.SES
+  length.vec <- prod(dim(mat))
+  x <- rep(x, length.vec)
+  
+  mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(x, nrow(mat), ncol(mat))
+  
+    # Initialize a simulation matrix
+  SES.sim <- matrix(NA, nrow(mat.sim), iter)
+  SES.sim[, 1] <- runif(nrow(mat.sim), 0, 1) # Random initial values for the first iteration
+  
+  # Perform the simulation over the specified number of iterations
+  for (i in 2:500) {
+    SES.sim[, i] <- t(mat.sim) %*% matrix((SES.sim[, i - 1]), ncol = 1) # Update values based on the SES matrix
   }
-
-  toc <- Sys.time() - tic # Record the elapsed time
-
-  # Check output for charachteristics .....
-
-  # R code: input is vector of arguments, output is vector of summary statistics
-  # Vector of summary statistics should come from state.sim on the appropriate targets, then find disturbance in mat.sim.df lookup
-
-
-# Aim is a 1 in the target, with 0 tolerance level
-
-  # To test
-  save(state.sim, mat.sim.df, mat.m, mat, file = paste(folder, file, sep = "/")) # Save the results
-
-  return(list(state.sim = state.sim, mat.sim.df = mat.sim.df, mat.m = mat.m, mat = mat.m)) # Return simulation results
+  
+  # This is not necessary I think
+  rownames(SES.sim) <- rownames(SES.mat) # Set row names of the simulation matrix
+  
+  
+  # SES <- SES.simulate(SES.mat = mat.sim, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
+  
+  res <- apply(sign(SES.sim[, (iter - 100):iter]), 1, prod) # Capture behavior over the last 101 steps
+  
+  # Select here the desirable outcomes
+  res <- res[desirable.outcomes]
+  
+  return(res) # Return simulation results
 }
 
-# if the target stat is Productivity:
+# target summary stat: res[targets] == 1, with 0 tolerance level
+my_prior=list(c("unif",0,1))
 
-sum_stat_obs=c('Productivity') # It can be coded that this obs should be positive
-
+indicators <- c("MPA biodiversity", "Food Provision") # It somehow doesn't work with only one target
 set.seed(1)
+sum_stat_obs <- rep(1, length(indicators))
+tol.lev = 0.00001 #indicating the proportion of simulations retained nearest the targeted summary statistics.
 
-n=10
+ABC_rej <- ABC_rejection(model = state.shift.ABC, prior = my_prior, nb_simul = 1000,
+                       summary_stat_target = sum_stat_obs, tol = tol.lev, 
+                       use_seed = F, progress_bar = TRUE)
 
-p=0.2
+ABC_rej
 
-ABC_rej<-ABC_rejection(model=state.shift.ABC, prior=my_prior, nb_simul=n,
-                         + summary_stat_target=sum_stat_obs, tol=p)
+# How to red the output?
+ABC_rej$param #The model parameters used in the model simulations.
+ABC_rej$stats # The summary statistics obtained at the end of the model simulations.
+ABC_rej$weights #	The weights of the different model simulations. In the standard rejection scheme, all model simulations have the same weights.
+ABC_rej$stats_normalization #The standard deviation of the summary statistics across the model simulations.
+ABC_rej$nsim # The number of model simulations performed.
+ABC_rej$nrec # The number of retained simulations (if targeted summary statistics are provided).
+
+# It doesn't work with tol.lev of 0, then nothing is retained
 
 
-toy_model<-function(x){
-c( x[1] + x[2] + rnorm(1,0,0.1) , x[1] * x[2] + rnorm(1,0,0.1) )
-}
-
-
+##############################################
 
 
 # Function to perform random forest analysis
@@ -530,33 +596,7 @@ random.forest.res <- function(input, folder, filename1, filename2) {
   return(importance_frame) # Return the importance frame
 }
 
-# Function to simulate effects on the matrix based on specified measures
-simulate.measure <- function(mat, measure, affected, indicators, lower, upper) {
-  # Generate random effects for the affected variables
-  measure.ef <- runif(length(affected), lower, upper)
 
-  # Initialize a new row for the matrix
-  newrow <- matrix(rep(0, ncol(mat)), nrow = 1)
-  newrow[match(affected, colnames(mat))] <- measure.ef # Assign effects to affected variables
-
-  # Add the new row to the original matrix
-  mat <- rbind(mat, newrow)
-
-  # Generate random effects for the indicators
-  measure.af <- runif(length(indicators), lower, upper)
-
-  # Initialize a new column for the matrix
-  newcol <- matrix(rep(0, nrow(mat)), ncol = 1)
-  newcol[match(indicators, row.names(mat))] <- measure.af # Assign effects to indicators
-
-  # Add the new column to the matrix
-  mat <- cbind(mat, newcol)
-
-  # Name the new row and column appropriately
-  row.names(mat)[nrow(mat)] <- colnames(mat)[ncol(mat)] <- measure
-
-  return(mat) # Return the modified matrix
-}
 
 
 # From here not clean yet......
@@ -606,618 +646,3 @@ state.shift.measure <- function(measure, greed, iter, mat, starting.value, indic
 }
 
 
-
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# ##### Berthe's old code
-# 
-# 
-# FCM.mat <- function(FCM) {
-#   # Extract unique elements from the FCM data frame
-#   elements <- c(unique(FCM$ELEMENT))
-# 
-#   # Get the initial values for each unique element
-#   # Use the first occurrence of each element (non-duplicated)
-#   starting.value <- FCM$ELEMENT.VALUE[!duplicated(FCM$ELEMENT)]
-#   # Assign element names to these starting values
-#   names(starting.value) <- FCM$ELEMENT[!duplicated(FCM$ELEMENT)]
-#   # Transform the starting values to a column vector
-#   starting.value <- t(t(starting.value))
-# 
-#   # Initialize a square matrix with dimensions equal to the number of unique elements
-#   # Fill the matrix with zeros
-#   PESTLE.mat <- matrix(0, length(elements), length(elements))
-#   # Set the column names of the matrix to the unique elements
-#   colnames(PESTLE.mat) <- elements
-#   # Set the row names of the matrix to the unique elements
-#   row.names(PESTLE.mat) <- elements
-# 
-#   # Fill the matrix with influence values
-#   # Iterate over each row of the FCM data frame
-#   for (i in 1:nrow(FCM)) {
-#     # Find the row index corresponding to the current ELEMENT
-#     row_idx <- which(row.names(PESTLE.mat) == FCM$ELEMENT[i])
-#     # Find the column index corresponding to the current INFLUENCE
-#     col_idx <- which(colnames(PESTLE.mat) == FCM$INFLUENCE[i])
-#     # Assign the influence value to the corresponding cell in the matrix
-#     PESTLE.mat[row_idx, col_idx] <- FCM$INFLUENCE.VALUE[i]
-#   }
-# 
-#   # Return a list containing the influence matrix and the starting values vector
-#   return(list(PESTLE.mat = PESTLE.mat, starting.value = starting.value))
-# }
-# 
-# 
-# ## Simulate matrix  #####################
-# 
-# simulate.mat <- function(mat) {
-#   # Create a matrix to store the simulated values
-#   # Step-by-step explanation of the matrix operations:
-#   # 1. (mat != 0): This creates a boolean matrix where each element is TRUE if the corresponding element in 'mat' is not zero, and FALSE otherwise.
-#   # 2. 1 * (mat != 0): This converts the boolean matrix to a numeric matrix where TRUE is converted to 1 and FALSE is converted to 0.
-#   # 3. sign(mat): This returns a matrix of the same dimensions as 'mat' where each element is the sign of the corresponding element in 'mat' (-1 for negative, 1 for positive, 0 for zero).
-#   # 4. matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat)): This creates a matrix of random numbers uniformly distributed between 0 and 1, with the same dimensions as 'mat'.
-#   # 5. The product of these matrices results in a matrix where:
-#   #    - Elements corresponding to zero elements in 'mat' are zero.
-#   #    - Non-zero elements are random numbers between 0 and 1, multiplied by the sign of the corresponding element in 'mat'.
-#   mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat))
-# 
-#   # Return the simulated matrix
-#   return(mat.sim)
-# }
-# 
-# ## Simulation  #####################
-# 
-# simu <- function(iter = 1000, starting.values, matrix.elems, elements = c("P", "E", "S", "T", "L", "EN")) {
-#   # Initialize a matrix to store the simulation results
-#   # Rows correspond to elements (e.g., P, E, S, T, L, EN)
-#   # Columns correspond to iterations
-#   FCM.sim <- matrix(NA, length(elements), iter) # Matrix filled with NAs initially
-# 
-#   # Set the initial values for the first iteration
-#   FCM.sim[, 1] <- starting.values # The first column is filled with the starting values
-# 
-#   # Loop over the number of iterations starting from the second iteration
-#   for (i in 2:iter) {
-#     # Each iteration multiplies the transpose of the PESTLE matrix (matrix.elems) with the previous outcome
-#     # FCM.sim[, i] <- PESTLE.mat %*% matrix((FCM.sim[, i - 1]), ncol = 1)
-#     FCM.sim[, i] <- t(matrix.elems) %*% matrix((FCM.sim[, i - 1]), ncol = 1)
-#   }
-# 
-#   # Return the simulation results matrix
-#   return(FCM.sim)
-# }
-# 
-# ## Boolean analysis  #####################
-# 
-# ## Transform to binary dataset ##################################################
-# 
-# bin.transform <- function(mat, folder, group) {
-#   # Create a binary matrix where elements are 1, -1, or 0
-#   # 1 indicates positive influence, -1 indicates negative influence, 0 indicates no influence
-#   PESTLE.bin <- sign(mat)
-# 
-#   # Initialize a data frame to store the boolean expressions for each target element
-#   boolean.df <- data.frame(targets = factor(colnames(PESTLE.bin)), factors = NA)
-# 
-#   # Loop through each column of the binary matrix
-#   for (i in 1:ncol(PESTLE.bin)) {
-#     # Get the names of elements with positive influence on the current target
-#     poss <- names(which(PESTLE.bin[, i] == 1))
-#     # Get the names of elements with negative influence on the current target
-#     negs <- names(which(PESTLE.bin[, i] == -1))
-# 
-#     # If there are negative influences, prepend '!' to each name to indicate negation
-#     if (length(negs) > 0) {
-#       negs <- paste0("!", negs)
-#     }
-# 
-#     # Combine positive and negative influences into a single vector
-#     all <- c(poss, negs)
-# 
-#     # Concatenate all influences with '|' to create a boolean expression
-#     boolean.df$factors[i] <- paste(all, collapse = "|")
-#   }
-# 
-#   # Create the filename for the CSV file
-#   filename <- paste0("PESTLE_bool_", group)
-#   # Write the data frame to a CSV file in the specified folder
-#   write.csv(boolean.df, file = paste0(folder, filename, ".csv"), row.names = FALSE, quote = FALSE)
-# 
-#   # Return the data frame with boolean expressions
-#   return(boolean.df)
-# }
-# 
-# 
-# ## Load network and obtain states ##################################################
-# 
-# pestle_boolean1 <- loadNetwork(paste0(folder, filename, ".csv"))
-# states.pestle1 <- getAttractors(pestle_boolean1)
-# 
-# # Simple graph
-# plot.state.map(states = states.pestle1, group = group)
-# 
-# state.map <- plotStateGraph(states.pestle1, layout = layout.fruchterman.reingold, plotIt = FALSE)
-# 
-# # Write graph: final figure will be made in Gephi
-# write_graph(
-#   state.map,
-#   file = paste0(folder, "pestle1_boolean.graphml"),
-#   format = "graphml"
-# )
-# 
-# # Print states
-# trans.tab <- getTransitionTable(states)
-# # plot.state.graph(states)
-# print(getBasinOfAttraction(states, 1))
-# 
-# 
-# ## Resilience  #####################
-# 
-# resilience.detracting.node.exp <- function(FCM.sim, elements = c("P", "E", "S", "T", "L", "EN"), tol = 10^-5, logged = TRUE) {
-#   # Load the 'reshape2' package, which is required for the function
-#   require(reshape2)
-# 
-#   # Determine the number of iterations (columns) in the simulation matrix
-#   iter <- ncol(FCM.sim)
-# 
-#   # Calculate the difference matrix based on whether logging is applied or not
-#   if (logged == TRUE) {
-#     # If logging is true, compute the logarithmic difference between consecutive iterations
-#     diff.mat <- log10(FCM.sim[, 2:iter]) - log10(FCM.sim[, 1:(iter - 1)])
-#   } else {
-#     # Otherwise, compute the simple difference between consecutive iterations
-#     diff.mat <- (FCM.sim[, 2:iter]) - (FCM.sim[, 1:(iter - 1)])
-#   }
-# 
-#   # Calculate the stable rate using the second-to-last iteration's difference
-#   stable.rate <- diff.mat[, (iter - 1)]
-#   # Compute the resilience matrix by subtracting the stable rate from the difference matrix
-#   res.mat <- diff.mat - stable.rate
-#   # Create a logical matrix indicating where the absolute values of res.mat are less than the tolerance
-#   res.mat.log <- (abs(res.mat) < tol)
-#   # Determine the first iteration where each element meets the tolerance criteria
-#   resilience.elements <- apply(res.mat.log, 1, function(x) which(x == TRUE)[1])
-#   # Assign names to the resilience elements based on the input elements
-#   names(resilience.elements) <- elements
-#   # Determine the system resilience as the maximum iteration where any element becomes stable
-#   system.resilience <- max(resilience.elements)
-# 
-#   # Return a list containing the resilience elements, the system resilience, and the state at the last iteration
-#   return(list(resilience.elements = resilience.elements, resilience = system.resilience, state = (FCM.sim[, iter])))
-# }
-# 
-# 
-# ## Plot the network #####################
-# 
-# plot.network <- function(origin.mat = PESTLE.mat, group, save.plot = TRUE) {
-#   # Load the necessary libraries
-#   require(igraph)
-#   require(GGally)
-# 
-#   # Create a directed graph object from the adjacency matrix 'origin.mat'
-#   FCM1.net <- graph_from_adjacency_matrix(
-#     (origin.mat),
-#     mode = "directed",
-#     weighted = TRUE
-#   )
-# 
-#   # Set the weights of the edges in the graph to be twice the absolute value of the original weights
-#   E(FCM1.net)$weights <- abs(E(FCM1.net)$weight) * 2
-#   # Determine the sign of each edge (positive or negative)
-#   E(FCM1.net)$sign <- sign(E(FCM1.net)$weight)
-#   # Set the default color of edges to 'dodgerblue'
-#   E(FCM1.net)$color <- "dodgerblue"
-#   # Change the color of negative edges to 'darkorange1'
-#   E(FCM1.net)$color[E(FCM1.net)$sign < 0] <- "darkorange1"
-# 
-#   # Generate a network plot using ggnet2
-#   p.net <- ggnet2(FCM1.net,
-#     label = TRUE, label.size = 4,
-#     arrow.size = 15, arrow.gap = 0.02,
-#     edge.color = "color", edge.size = "weights"
-#   )
-# 
-#   # Define the output folder and file name for the plot
-#   output.folder <- paste0("./FCM matrix projections/res", group)
-#   file.name <- "network"
-#   tiff.dim <- c(1500, 1000) # Dimensions for the TIFF file
-# 
-#   # Save the plot as a TIFF file if save.plot is TRUE
-#   if (save.plot) {
-#     tiff(file.path(output.folder, paste0(file.name, ".tiff")),
-#       width = tiff.dim[1], height = tiff.dim[2],
-#       units = "px", pointsize = 12, res = 300,
-#       compression = c("lzw")
-#     )
-#   }
-# 
-#   # Print the network plot
-#   print(p.net)
-# 
-#   # Close the TIFF device if the plot was saved
-#   if (save.plot) dev.off()
-# 
-#   # Return the generated plot
-#   return(p.net)
-# }
-# 
-# ## Plot of system dynamics over time ###############################
-# 
-# plot.time.prog <- function(sim.output, group, save.plot = TRUE,
-#                            xlims = NULL, ylims = NULL,
-#                            xlog = FALSE, ylog = FALSE,
-#                            elements = c("P", "E", "S", "T", "L", "EN")) {
-#   require(reshape2)
-#   require(ggplot2)
-#   require(RColorBrewer)
-# 
-#   row.names(sim.output) <- elements
-#   sim.melt <- melt(sim.output)
-# 
-#   # This is now a dataframe with the elements (Var1) and values per iteration (Var2)
-#   p.time <- ggplot(sim.melt, aes(
-#     x = Var2,
-#     y = value,
-#     colour = factor(Var1)
-#   )) +
-#     geom_path() +
-#     scale_colour_brewer(palette = "Set3") +
-#     xlab("Time") +
-#     ylab("Progress") +
-#     labs(colour = "Element") +
-#     theme_minimal()
-# 
-#   if (xlog) {
-#     p.time <- p.time + scale_x_continuous(trans = "log10") + xlab("log(Time)")
-#   }
-#   if (ylog) {
-#     p.time <- p.time + scale_y_continuous(trans = "log10") + ylab("log(Progress)")
-#   }
-# 
-#   if (!is.null(xlims)) {
-#     p.time <- p.time + xlim(xlims)
-#   }
-#   if (!is.null(ylims)) {
-#     p.time <- p.time + ylim(ylims)
-#   }
-# 
-#   output.folder <- paste0("./FCM matrix projections/res", group)
-#   file.name <- "progress"
-#   tiff.dim <- c(1500, 1000)
-# 
-#   if (save.plot) {
-#     tiff(file.path(output.folder, paste0(file.name, ".tiff")),
-#       width = tiff.dim[1], height = tiff.dim[2],
-#       units = "px", pointsize = 12, res = 300,
-#       compression = c("lzw")
-#     )
-#   }
-# 
-#   print(
-#     p.time
-#   )
-# 
-#   if (save.plot) dev.off()
-# 
-#   return(p.time)
-# }
-# 
-# ## Dimensions of the basin of attraction (PCA) ###############################
-# 
-# plot.PCA <- function(pca, group,
-#                      xlims = NULL, ylims = NULL,
-#                      xlog = NULL, ylog = NULL,
-#                      save.plot = TRUE) {
-#   # library("devtools")
-#   # install_github("kassambara/factoextra")
-# 
-#   require(factoextra)
-# 
-#   biplot <- factoextra::fviz_pca_biplot(pca,
-#     title = " ",
-#     xlab = "PC1",
-#     ylab = "PC2",
-#     geom = c("point"), # , "text"
-#     alpha.ind = 0.8,
-#     col.ind = "darkgrey",
-#     col.var = "dodgerblue",
-#     label = "var",
-#     ggtheme = theme_minimal()
-#   ) +
-#     scale_y_continuous(breaks = scales::breaks_extended(n = 2)) +
-#     scale_x_continuous(breaks = scales::breaks_extended(n = 2))
-# 
-#   # Manipulation of axes
-#   if (!is.null(xlog)) {
-#     biplot <- biplot + scale_x_continuous(breaks = scales::breaks_extended(n = 2), trans = "log10") + xlab("log(Time)")
-#   }
-#   if (!is.null(ylog)) {
-#     biplot <- biplot + scale_y_continuous(breaks = scales::breaks_extended(n = 2), trans = "log10") + ylab("log(Progress)")
-#   }
-# 
-#   if (!is.null(xlims)) {
-#     biplot <- biplot + xlim(xlims)
-#   }
-#   if (!is.null(ylims)) {
-#     biplot <- biplot + ylim(ylims)
-#   }
-# 
-# 
-#   # biplot
-#   #
-#   # layer_scales(biplot)$y$get_limits() #-3.319612e+181  7.967070e+182
-#   # layer_scales(biplot)$x$get_limits() #-1.511836e+196  5.516300e+198
-#   #
-#   # layer_scales(biplot)$x$get_limits()[1]
-# 
-# 
-#   trajectory <- ggplot(as.data.frame(pca$x), aes(x = PC1, y = PC2)) +
-#     geom_point(colour = "dodgerblue") +
-#     geom_path(
-#       colour = "dodgerblue" # ,
-#       # arrow =
-#       #   arrow(angle = 15,
-#       #         ends = "last",
-#       #         type = "closed")
-#     ) +
-#     theme_minimal()
-# 
-#   output.folder <- paste0("./FCM matrix projections/res", group)
-#   file.name <- "pca"
-#   tiff.dim <- c(1500, 1000)
-# 
-#   if (save.plot) {
-#     tiff(file.path(output.folder, paste0(file.name, ".tiff")),
-#       width = tiff.dim[1], height = tiff.dim[2],
-#       units = "px", pointsize = 12, res = 300,
-#       compression = c("lzw")
-#     )
-#   }
-# 
-#   # Plot of PCA with arrows
-#   print(
-#     biplot
-#   ) # biplot(pca)
-# 
-#   if (save.plot) dev.off()
-# 
-#   # TODO: Different function, check ggplot for better graphical representation
-# 
-#   output.folder <- paste0("./FCM matrix projections/res", group)
-#   file.name <- "state"
-#   tiff.dim <- c(1500, 1000)
-# 
-#   if (save.plot) {
-#     tiff(file.path(output.folder, paste0(file.name, ".tiff")),
-#       width = tiff.dim[1], height = tiff.dim[2],
-#       units = "px", pointsize = 12, res = 300,
-#       compression = c("lzw")
-#     )
-#   }
-# 
-#   # Plot of the evolution of the state
-#   print(
-#     trajectory
-#   )
-# 
-#   if (save.plot) dev.off()
-# 
-#   return(list(biplot, trajectory))
-# }
-# 
-# 
-# ## Simple state map ###############################
-# 
-# plot.state.map <- function(states, group, save.plot = TRUE) {
-#   output.folder <- paste0("./FCM matrix projections/res", group)
-#   file.name <- "boolean_states"
-#   tiff.dim <- c(900, 900)
-# 
-#   if (save.plot) {
-#     tiff(file.path(output.folder, paste0(file.name, ".tiff")),
-#       width = tiff.dim[1], height = tiff.dim[2],
-#       units = "px", pointsize = 12, res = 300,
-#       compression = c("lzw")
-#     )
-#   }
-# 
-#   plotStateGraph(states,
-#     layout = layout.fruchterman.reingold,
-#     colorSet = c("darkslategrey", "darkorange1"),
-#     plotIt = T
-#   )
-# 
-#   if (save.plot) dev.off()
-# }
-# 
-# ## Initial condition resilience sensitivity ###############################
-# 
-# initial.cond.sens <- function(matrix.elems, original.res, log.trans,
-#                               elements = c("P", "E", "S", "T", "L", "EN"), save.plot = TRUE) {
-#   sens.initial.conditions <- list()
-#   res.initial.conditions <- list()
-# 
-#   # Include also the PESTLE elements in the df? Keep it simple for now
-#   stability.initial.conditions.df <- data.frame(matrix(NA, nrow = 1000, ncol = 1))
-#   colnames(stability.initial.conditions.df) <- "resilience.diff"
-# 
-#   for (m in 1:1000) {
-#     sens.initial.conditions[[m]] <- simu(starting.values = runif(6, 0, 10), matrix.elems = matrix.elems)
-#     res.initial.conditions[[m]] <- resilience.detracting.node.exp(FCM.sim = sens.initial.conditions[[m]], logged = log.trans)
-# 
-#     # Save resilience results in dataframe
-#     stability.initial.conditions.df[m, 1] <- res.initial.conditions[[m]]$resilience
-#   }
-# 
-#   # Plot first run
-#   # plot.time.prog(sens.initial.conditions[[1]], diff = F, group, save.plot = T,
-#   #                xlims = c(0,50),file.name = 'sens_initial_cond_progress')
-#   # plot.time.prog(sens.initial.conditions[[1]], diff = T, group, save.plot = T,
-#   #                xlims = c(0,50),file.name = 'sens_initial_cond_progress_diff')
-# 
-#   # Plot distribution of resilience changes
-#   diff.main.init.conditions <- stability.initial.conditions.df - original.res$resilience
-# 
-#   # Density plot
-#   ini.cond.resilience <- ggplot(data = diff.main.init.conditions, aes(x = resilience.diff)) +
-#     geom_density(colour = "dodgerblue", fill = "dodgerblue", alpha = 0.7) +
-#     theme_minimal() +
-#     xlab("Resilience (difference compared to baseline)") +
-#     ylab("Density")
-# 
-#   output.folder <- paste0("./FCM matrix projections/res", group)
-#   file.name <- "initial.condition.resilience"
-#   tiff.dim <- c(2000, 1500)
-# 
-#   if (save.plot) {
-#     tiff(file.path(output.folder, paste0(file.name, ".tiff")),
-#       width = tiff.dim[1], height = tiff.dim[2],
-#       units = "px", pointsize = 12, res = 300,
-#       compression = c("lzw")
-#     )
-#   }
-# 
-#   print(ini.cond.resilience)
-# 
-#   if (save.plot) dev.off()
-# 
-#   return(list(ini.cond.resilience, sens.initial.conditions, res.initial.conditions, stability.initial.conditions.df))
-# }
-# 
-# ## System resilience sensitivity ###############################
-# 
-# resilience.sens <- function(starting.values, matrix.elems, original.res, log.trans,
-#                             elements = c("P", "E", "S", "T", "L", "EN"), save.plot = TRUE) {
-#   # Create empty list to save results
-#   sens.res <- list()
-#   sens.res.elem <- list()
-# 
-#   # vector of all PESTLE matrix elements to disturb
-#   dist.elems <- matrix.elems[which(matrix.elems != 0)]
-#   # There are duplicates in this vector -- loop over positions of those elements
-#   duplicated(dist.elems)
-# 
-#   dist.elems.pos <- which(matrix.elems != 0, arr.ind = T)
-# 
-#   # Create df to save resilience results
-#   sens.res.resilience.df <- data.frame(matrix(NA, nrow = 1000, ncol = length(dist.elems)))
-#   colnames(sens.res.resilience.df) <- seq(1:length((dist.elems)))
-# 
-# 
-#   for (i in 1:length(dist.elems)) {
-#     # print(i)
-#     dist <- dist.elems[i] + rnorm(1000, 0, 0.01)
-# 
-#     for (j in 1:length(dist)) {
-#       # print(j)
-# 
-#       PESTLE.mat.dist <- matrix.elems
-# 
-#       PESTLE.mat.dist[dist.elems.pos[i, ][1], dist.elems.pos[i, ][2]] <- dist[j]
-# 
-#       # Simulation
-#       simu.res <- simu(starting.values = starting.values, matrix.elems = PESTLE.mat.dist)
-#       sens.res.elem[[j]] <- simu.res
-# 
-#       # Resilience
-#       sens.res.resilience <- resilience.detracting.node.exp(FCM.sim = simu.res, logged = log.trans)
-# 
-#       # Save resilience results in dataframe
-#       sens.res.resilience.df[j, i] <- sens.res.resilience$resilience
-# 
-#       # TODO:
-#       # Save resilience results in dataframe PER PESTLE ELEMENT - report in one matrix per element
-#       # sens.res.resilience.df[j,i] <-  sens.res.resilience$resilience
-#     }
-#     # Save all simu outcomes in a list
-#     sens.res[[i]] <- sens.res.elem
-#   }
-# 
-#   # Difference between original and new matrix resilience.
-#   diff.main <- sens.res.resilience.df - original.res$resilience
-#   diff.main.melted <- melt(diff.main)
-# 
-#   # Include matrix positions
-#   diff.main.melted$ELEMENT <- dist.elems.pos[diff.main.melted$variable, ][, 1]
-#   diff.main.melted$INFLUENCE <- dist.elems.pos[diff.main.melted$variable, ][, 2]
-# 
-#   # Rename columns
-#   colnames(diff.main.melted) <- c("dist.elem", "value", "ELEMENT", "INFLUENCE")
-# 
-#   # Rename ELEMENT and INFLUENCE according to PESTLE elements
-#   diff.main.melted$ELEMENT <- elements[diff.main.melted$ELEMENT]
-#   diff.main.melted$INFLUENCE <- elements[diff.main.melted$INFLUENCE]
-# 
-#   res.sens <- ggplot(diff.main.melted, aes(x = value)) +
-#     geom_density(colour = "dodgerblue", fill = "dodgerblue", alpha = 0.7) +
-#     theme_minimal() +
-#     xlab("Resilience (difference compared to baseline)") +
-#     ylab("Density") +
-#     facet_grid(factor(ELEMENT, levels = elements) ~ factor(INFLUENCE, levels = elements),
-#       scales = "free_y"
-#     )
-# 
-#   output.folder <- paste0("./FCM matrix projections/res", group)
-#   file.name <- "system.resilience"
-#   tiff.dim <- c(2000, 1500)
-# 
-#   if (save.plot) {
-#     tiff(file.path(output.folder, paste0(file.name, ".tiff")),
-#       width = tiff.dim[1], height = tiff.dim[2],
-#       units = "px", pointsize = 12, res = 300,
-#       compression = c("lzw")
-#     )
-#   }
-# 
-#   print(res.sens)
-# 
-#   if (save.plot) dev.off()
-# 
-#   return(list(res.sens, sens.res, sens.res.resilience.df))
-# }
-# 
-# ## Greedy approach to state shift  #####################
-# 
-# state.shift <- function(greed, iter, mat, tol = 0.000001, elements = c("P", "E", "S", "T", "L", "EN")) {
-#   require(reshape2)
-# 
-#   starting.value <- runif(nrow(mat), 0, 1) # Create random starting values between 0 and 1
-# 
-#   FCM.obs <- simu(matrix.elems = mat, iter, starting.value) # Simulate outcomes
-# 
-#   state.obs <- FCM.obs[, iter]
-#   names(state.obs) <- elements
-# 
-#   state.sim <- array(NA, dim = c(length(state.obs), greed))
-#   rownames(state.sim) <- elements
-# 
-#   mat.m <- melt(mat)
-#   mat.sim.df <- array(NA, dim = c(nrow(mat.m), greed + 2))
-#   mat.sim.df[, 1] <- mat.m$Var1
-#   mat.sim.df[, 2] <- mat.m$Var2
-# 
-#   tic <- Sys.time()
-# 
-#   for (i in 1:greed) {
-#     mat.sim <- simulate.mat(mat)
-# 
-#     FCM <- simu(matrix.elems = mat.sim, iter, starting.value)
-# 
-#     mat.sim.df[, i + 2] <- melt(mat.sim)$value
-#     state.sim[, i] <- FCM[, iter] - matrix(state.obs, ncol = 1)
-#   }
-#   toc <- Sys.time() - tic
-# 
-#   state.sim.bin <- state.sim
-#   state.sim.bin[abs(state.sim.bin) < tol] <- 0
-#   state.sim.bin <- sign(state.sim.bin)
-# 
-#   return(list(state.sim = state.sim, state.sim.bin = state.sim.bin, mat.sim.df = as.data.frame(mat.sim.df)))
-# }
