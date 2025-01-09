@@ -95,7 +95,7 @@ data.load <- function(df, folder, graph = FALSE, graph.name = NULL, graph.title 
 } 
 
 
-############ Qualitative ############ 
+############ Qualitative (signed) analyses ############ 
 
 # Function to compute the Laplacian of the SES matrix
 SES.laplacian <- function(SES.mat, from = c("rows", "cols")) {
@@ -199,10 +199,7 @@ qualitative.analyses <- function(SES.mat, folder, filename.boolean.csv, filename
   
 }
 
-############ Quantitative ############ 
-
-# Time simulate = SES simulate... use a plot on /off argument
-
+############ Quantitative analyses ############ 
 
 # Function to simulate SES dynamics
 SES.simulate <- function(SES.mat, iter, save.fig = FALSE, folder, fig.filename, fig.title) {
@@ -335,7 +332,7 @@ simulate.mat <- function(mat, all = TRUE, change, type = c('uniform','ordinal'),
   #   #    - Elements corresponding to zeros in 'mat' remain zero.
   #   #    - Non-zero elements are multiplied by random numbers between 0 and 1, preserving their sign.
   #   
-  draw <- c(0,0.25,0.5,0.75,1)
+  draw <- c(0, 0.25, 0.5, 1) # Corresponds to the strong, medium and weak link definition in the SES
   
   # if(ABC == TRUE){
   #   # For now ABC can only be performed on the full matrix and with a uniform distribution
@@ -403,7 +400,7 @@ simulate.measure <- function(mat, measure, affected, indicators, lower, upper) {
 
 # Function to observe state shifts in the SES dynamics
 state.shift <- function(mat, greed, iter, type = c('uniform','ordinal'),
-                        all = TRUE, change,
+                        all = TRUE, change = NULL,
                         measure = FALSE, affected = NULL, indicators = NULL, lower = -1, upper = 0,
                         folder, file) {
   
@@ -424,7 +421,7 @@ state.shift <- function(mat, greed, iter, type = c('uniform','ordinal'),
     
   } else {
     
-    SES.obs <- SES.simulate(SES.mat = mat.sim, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
+    SES.obs <- SES.simulate(SES.mat = mat, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
     state.obs <- SES.obs[, iter]
     names(state.obs) <- newnames
     
@@ -469,39 +466,18 @@ state.shift <- function(mat, greed, iter, type = c('uniform','ordinal'),
 }
 
 #############################################
-# With EasyABC - what is the target summary statistic? We can keep the prior distribution as is
+# With EasyABC 
 
-library(EasyABC)
-
-# Create wrapper function, selecting: 
-# 1. the type of distribution (only uniform for now)
-# 2. the desirable outcomes
-# 3. the seed
-# 4. the number of iterations in the simulation (default = 500)
-# 5. 
-
-mat = macaronesia.SES
-
-x <- runif(length.vec,0,1)
-# prior should be input, all the rest are dimensions that should be given to the function externally
-
-# This is not just abuot providing an element from the uniform distribution.
-# We want to identify WHICH element should be changed. 
-# Multiple ways forward: 
-# Rep x for the length of the matrix: then we can identify the size of the change (?)
-# Actually we should perform one of those algorithms on each of the matrix elements
-
-state.shift.ABC <- function(x, desirable.outcomes = indicators) {
+state.shift.ABC <- function(x, iter = 500, desirable.outcomes = indicators) {
   
   # mat.sim <- simulate.mat(mat, type = type, all, change, ABC = TRUE, prior = my_prior) # Simulate a new matrix -- this is where the prior comes into play
   
-  # For now ABC can only be performed on the full matrix and with a uniform distribution 
-  # Working on an update within the simulate.mat function
-  mat = macaronesia.SES
-  length.vec <- prod(dim(mat))
-  x <- rep(x, length.vec)
+  # Classify the drawn values into weak-strong values
+  b <- c(0, 0.25, 0.5, 1)
   
-  mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(x, nrow(mat), ncol(mat))
+  x1 <- sapply(x, function(x, b) {b[which.min(abs(x-b))]}, b)
+
+  mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(x1, nrow(mat), ncol(mat))
   
     # Initialize a simulation matrix
   SES.sim <- matrix(NA, nrow(mat.sim), iter)
@@ -513,8 +489,7 @@ state.shift.ABC <- function(x, desirable.outcomes = indicators) {
   }
   
   # This is not necessary I think
-  rownames(SES.sim) <- rownames(SES.mat) # Set row names of the simulation matrix
-  
+  rownames(SES.sim) <- rownames(mat) # Set row names of the simulation matrix
   
   # SES <- SES.simulate(SES.mat = mat.sim, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
   
@@ -526,33 +501,28 @@ state.shift.ABC <- function(x, desirable.outcomes = indicators) {
   return(res) # Return simulation results
 }
 
-# target summary stat: res[targets] == 1, with 0 tolerance level
-my_prior=list(c("unif",0,1))
-
-indicators <- c("MPA biodiversity", "Food Provision") # It somehow doesn't work with only one target
-set.seed(1)
-sum_stat_obs <- rep(1, length(indicators))
-tol.lev = 0.00001 #indicating the proportion of simulations retained nearest the targeted summary statistics.
-
-ABC_rej <- ABC_rejection(model = state.shift.ABC, prior = my_prior, nb_simul = 1000,
-                       summary_stat_target = sum_stat_obs, tol = tol.lev, 
-                       use_seed = F, progress_bar = TRUE)
-
-ABC_rej
-
-# How to red the output?
-ABC_rej$param #The model parameters used in the model simulations.
-ABC_rej$stats # The summary statistics obtained at the end of the model simulations.
-ABC_rej$weights #	The weights of the different model simulations. In the standard rejection scheme, all model simulations have the same weights.
-ABC_rej$stats_normalization #The standard deviation of the summary statistics across the model simulations.
-ABC_rej$nsim # The number of model simulations performed.
-ABC_rej$nrec # The number of retained simulations (if targeted summary statistics are provided).
-
-# It doesn't work with tol.lev of 0, then nothing is retained
-
 
 ##############################################
 
+# Function when using greedy approach
+RF.prep <- function(state.shift.res, tolerance = 0.000001, targets, greed = 100){
+  
+  bin <- state.shift.res$state.sim
+  bin[abs(bin) < tolerance] <- 0
+  bin <- sign(bin)
+  
+  desirable.outcomes <- which(colSums(bin[match(targets, row.names(bin)), ]) == length(targets))
+  
+  sim.ana <- state.shift.res$mat.sim.df[which(state.shift.res$mat.m$value != 0),]
+  sim.ana.df <- t(sim.ana[, 3:(greed + 2)])
+  colnames(sim.ana.df) <- apply(sim.ana[, 1:2], 1, function(x) paste0(row.names(state.shift.res$mat)[x[1]], " to ", row.names(state.shift.res$mat)[x[2]]))
+  sim.ana.df <- as.data.frame(sim.ana.df)
+  
+  sim.ana.df$outcomes <- 0
+  sim.ana.df$outcomes[desirable.outcomes] <- 1
+  
+  return(sim.ana.df)
+}
 
 # Function to perform random forest analysis
 random.forest <- function(sim.outcomes, ntree = 500, folder, file) {
@@ -580,6 +550,9 @@ random.forest <- function(sim.outcomes, ntree = 500, folder, file) {
 
 # Function to analyze and visualize random forest results
 random.forest.res <- function(input, folder, filename1, filename2) {
+  
+  require(ggplot2)
+  
   # Measure the importance of each feature in the random forest model
   importance_frame <- measure_importance(input)
 
