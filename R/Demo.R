@@ -19,17 +19,11 @@ source('~/marineSABRES/R/utils.R')
 
 ####################################################################################
 
-# Use Tuscany instead?
-
-# TODO:
-# Overview of input parameters
-
-# Output folder where all (temporary) results are saved. This should be selected by the user. 
+# Define paths
 folder <- "C:/Users/bmjv/OneDrive - Danmarks Tekniske Universitet/SABRES/loopanalyses/Macaronesia demo/"
 
 # Load data
-# Format : 
-macaronesia <- fread(paste0(folder,"macaronesia_isa5_May2024.csv"))
+macaronesia <- fread(paste0(folder,"macaronesia_isa5_May2024.csv")) # One example
 
 ###################################################
 #### Load and graph
@@ -45,7 +39,8 @@ macaronesia.SES <- data.load(df = macaronesia, folder = folder, graph.name = "Ma
 # Filenames for the .csv and graph
 
 # In one function:
-macaronesia.qual <- qualitative.analyses(macaronesia.SES, folder, 
+macaronesia.qual <- qualitative.analyses(SES.mat = macaronesia.SES, 
+                                         folder, 
                                          filename.boolean.csv = "Macaronesia_boolean",
                                          filename.boolean.graph = "Macaronesia_boolean2")
 
@@ -81,7 +76,7 @@ attractor1 <- data.frame(name = colnames(macaronesia.SES), boolean = as.numeric(
 # The folder where output should be saved
 # Filenames for the .csv and graph
 
-greed = 10000
+greed = 500
 
 iter = 500
 filename.simu.figure = "macaronesia_weighted_projection" 
@@ -100,12 +95,13 @@ quantitative.analyses <- function(SES.mat, greed = 100, iter = 500, folder, file
   macaronesia.sim <- SES.simulate(SES.mat = macaronesia.SES, iter = iter, save.fig = T, folder, fig.filename = filename.simu.figure, 
                                   fig.title = title.simu)
   
-  PR <- participation_ratio(macaronesia.SES, folder = folder, filename = filename.PR , title = title.simu) 
-  
-  ###############################################################################################
-  ### Greedy approach
+  PR <- participation_ratio(SES = macaronesia.SES, folder = folder, filename = filename.PR , title = title.simu) 
   
   macaronesia.state.shift <- state.shift(mat = macaronesia.SES, greed, iter, type = 'uniform', folder, file = 'filename.greedy.res')
+  
+  
+  
+  
   
   sim.outcomes.macaronesia <- RF.prep(state.shift.res = macaronesia.state.shift, targets = c('Food Provision','MPA biodiversity','Residents'))
 
@@ -118,90 +114,10 @@ quantitative.analyses <- function(SES.mat, greed = 100, iter = 500, folder, file
   importance_frame.macaronesia <- random.forest.res(forest.macaronesia, folder, 
                                                     filename1 = "macaronesia_importance.Rdata", 
                                                     filename2 = "macaronesia_randomforest_variable_importance")
-  
+
 }
 
-
-# .... ABC .....
-
-library(EasyABC)
-
-# Make a list of x uniform distributions
-length.vec <- prod(dim(mat))
-my_prior <- rep(list(c("unif",0,1)),length.vec) # Create N 
-
-indicators <- c("MPA biodiversity", "Food Provision") # It somehow doesn't work with only one target
-set.seed(1)
-
-sum_stat_obs <- rep(1, length(indicators))
-tol.lev <- 0.000001 #indicating the proportion of simulations retained nearest the targeted summary statistics.
-
-# It works with uniform distribution, there's an issue with the selection process
-ABC_rej <- ABC_rejection(model = state.shift.ABC, prior = my_prior, nb_simul = 10000) #At least this is faster than the greedy approach
-ABC_rej # Takes 320 sec
-filename <- 'ABC_rej'
-save(ABC_rej, file = paste0(folder, filename, ".RData"))
-
-# RF can be applied to this
-
-# Run long greedy simulation and check output format + test RF code
-# Then try and better identify or change the selected summary statistics: can I play more around with those?
-
-
-ABC_mxmc <- ABC_mcmc(method = 'Marjoram',model = state.shift.ABC, prior = my_prior, 
-                     summary_stat_target = sum_stat_obs) #At least this is faster than the greedy approach
-# The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution
-
-
-# Try with abc package
-library(abc)
-
-rej <- abc(sum_stat_obs, ABC_rej$param, ABC_rej$stats, tol=0.1, method="rejection")
-# Zero variance in the summary statistics in the selected region. Check summary statistics, consider larger tolerance.
-
-
-tolerance <- c(0.01,0.0001)
-BC_Beaumont <- ABC_sequential(method = "Beaumont", model = state.shift.ABC,
-                              prior = my_prior, nb_simul = 1000, summary_stat_target = sum_stat_obs,
-                              tolerance_tab = tolerance, inside_prior = F)
-BC_Beaumont # Stats are good, but all weights are NaN
-
-# Explore results
-dim(BC_Beaumont$param)
-summary(BC_Beaumont$stats)
-
-# How to report these results .....
-plot(BC_Beaumont)
-
-
-ABC_rej <- ABC_rejection(model = state.shift.ABC, prior = my_prior, nb_simul = 1000,
-                         summary_stat_target = sum_stat_obs, tol = 0.54, 
-                         use_seed = F, progress_bar = F) # Doesn't work with the tolerance being very low or zero. Find a better way
-ABC_rej
-
-# How to red the output?
-ABC_rej$param #The model parameters used in the model simulations.
-ABC_rej$stats # The summary statistics obtained at the end of the model simulations.
-ABC_rej$weights #	The weights of the different model simulations. In the standard rejection scheme, all model simulations have the same weights.
-ABC_rej$stats_normalization #The standard deviation of the summary statistics across the model simulations.
-ABC_rej$nsim # The number of model simulations performed.
-ABC_rej$nrec # The number of retained simulations (if targeted summary statistics are provided).
-
-# It doesn't work with tol.lev of 0, then nothing is retained
-
-
-
-
 # .... Introduce measures .....
-
-
-########################################
-########################################
-########################################
-########################################
-
-###
-##### introduce measures
 
 
 ##### introduce measures = new link
@@ -212,10 +128,6 @@ indicators <- tuscany_element$Label[which(tuscany_element$Description == "Good a
 indicators <- indicators[indicators %in% row.names(tuscany.SES)]
 
 tuscany.alt <- simulate.measure(macaronesia.SES, "tourism throttling", affected, indicators, lower = -1, upper = 0)
-
-
-
-
 
 
 state.shift.measure <- function(measure, greed, iter, mat, starting.value, indicators) {
@@ -348,6 +260,76 @@ importance_frame.tuscany_measure <- random.forest.res(forest.tuscany_measure, fo
 
 
 
+
+
+
+
+# .... ABC ..... This is still in trial and should not be considered for now
+
+library(EasyABC)
+
+# Make a list of x uniform distributions
+length.vec <- prod(dim(mat))
+my_prior <- rep(list(c("unif",0,1)),length.vec) # Create N 
+
+indicators <- c("MPA biodiversity", "Food Provision") # It somehow doesn't work with only one target
+set.seed(1)
+
+sum_stat_obs <- rep(1, length(indicators))
+tol.lev <- 0.000001 #indicating the proportion of simulations retained nearest the targeted summary statistics.
+
+# It works with uniform distribution, there's an issue with the selection process
+ABC_rej <- ABC_rejection(model = state.shift.ABC, prior = my_prior, nb_simul = 10000) #At least this is faster than the greedy approach
+ABC_rej # Takes 320 sec
+filename <- 'ABC_rej'
+save(ABC_rej, file = paste0(folder, filename, ".RData"))
+
+# RF can be applied to this
+
+# Run long greedy simulation and check output format + test RF code
+# Then try and better identify or change the selected summary statistics: can I play more around with those?
+
+
+ABC_mxmc <- ABC_mcmc(method = 'Marjoram',model = state.shift.ABC, prior = my_prior, 
+                     summary_stat_target = sum_stat_obs) #At least this is faster than the greedy approach
+# The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution
+
+
+# Try with abc package
+library(abc)
+
+rej <- abc(sum_stat_obs, ABC_rej$param, ABC_rej$stats, tol=0.1, method="rejection")
+# Zero variance in the summary statistics in the selected region. Check summary statistics, consider larger tolerance.
+
+
+tolerance <- c(0.01,0.0001)
+BC_Beaumont <- ABC_sequential(method = "Beaumont", model = state.shift.ABC,
+                              prior = my_prior, nb_simul = 1000, summary_stat_target = sum_stat_obs,
+                              tolerance_tab = tolerance, inside_prior = F)
+BC_Beaumont # Stats are good, but all weights are NaN
+
+# Explore results
+dim(BC_Beaumont$param)
+summary(BC_Beaumont$stats)
+
+# How to report these results .....
+plot(BC_Beaumont)
+
+
+ABC_rej <- ABC_rejection(model = state.shift.ABC, prior = my_prior, nb_simul = 1000,
+                         summary_stat_target = sum_stat_obs, tol = 0.54, 
+                         use_seed = F, progress_bar = F) # Doesn't work with the tolerance being very low or zero. Find a better way
+ABC_rej
+
+# How to red the output?
+ABC_rej$param #The model parameters used in the model simulations.
+ABC_rej$stats # The summary statistics obtained at the end of the model simulations.
+ABC_rej$weights #	The weights of the different model simulations. In the standard rejection scheme, all model simulations have the same weights.
+ABC_rej$stats_normalization #The standard deviation of the summary statistics across the model simulations.
+ABC_rej$nsim # The number of model simulations performed.
+ABC_rej$nrec # The number of retained simulations (if targeted summary statistics are provided).
+
+# It doesn't work with tol.lev of 0, then nothing is retained
 
 
 

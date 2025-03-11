@@ -13,7 +13,7 @@
 ########################################################################
 
 # TODO:
-# Create this into package
+
 # Make state.shift funciton so that it can deal with both the 'simple' greedy approacha nd with measures
 
 # Think of what to save in state shift
@@ -319,7 +319,7 @@ participation_ratio <- function(SES, folder, filename, title) {
 
 # Function to simulate a matrix with random values based on the input matrix
 
-# Change should be a number indicating the element, rangin between 1 and prod(dim(mat))
+# Change should be a number indicating the element, ranging between 1 and prod(dim(mat))
 
 simulate.mat <- function(mat, all = TRUE, change, type = c('uniform','ordinal'), ABC = FALSE, prior = NULL) {
   #   # Create a matrix to store simulated values based on the input matrix
