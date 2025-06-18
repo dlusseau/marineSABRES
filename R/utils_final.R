@@ -6,20 +6,12 @@
 ####
 ####   davlu
 ####   bmjv
-####   October 2024
+####   Start; October 2024
 ####   list of utility functions to walk through interventions SABRES analytical pipelines
 ####   See Demo.R for a demo workflow
 ####
 ########################################################################
 
-# TODO:
-
-# Make state.shift funciton so that it can deal with both the 'simple' greedy approacha nd with measures
-
-# Think of what to save in state shift
-
-
-############ Intro ############
 
 # Function to create a matrix from 'from', 'to', and 'weight' vectors
 make_matrix <- function(from, to, weight) {
@@ -69,30 +61,38 @@ plot.SES <- function(SES.mat, folder, filename, title, w = 80, h = 40, layout = 
 }
 
 
-
-data.load <- function(df, folder, graph = FALSE, graph.name = NULL, graph.title = NULL){
+# Function to load data and optionally plot the SES network
+data.load <- function(df, folder, graph = FALSE, graph.name = NULL, graph.title = NULL) {
   
+  # Assign default weight of 1 to all connections
   df$weight <- 1
-  df$weight[df$strength == "Medium Positive"] <- .5
-  df$weight[df$strength == "Medium Negative"] <- (-.5)
-  df$weight[df$strength == "Strong Negative"] <- (-1)
+  
+  # Adjust weights based on the strength of the connections
+  df$weight[df$strength == "Medium Positive"] <- 0.5
+  df$weight[df$strength == "Medium Negative"] <- -0.5
+  df$weight[df$strength == "Strong Negative"] <- -1
+  
+  # Determine the sign of the weights
   df$sign <- sign(df$weight)
   
+  # Create an adjacency matrix from the 'from', 'to', and 'weight' columns
   SES.mat <- make_matrix(from = df$from, to = df$to, weight = df$weight)
   
-  if(graph){
-    SES.graph <- plot.SES(SES.mat,
-                          folder = folder,
-                          filename = graph.name,
-                          title = graph.title,
-                          label.cex = 1.1,
-                          vsize = 30
+  # If graph plotting is requested, plot the SES network
+  if (graph) {
+    SES.graph <- plot.SES(
+      SES.mat,
+      folder = folder,
+      filename = graph.name,
+      title = graph.title,
+      label.cex = 1.1,
+      vsize = 30
     )
   }
   
+  # Return the adjacency matrix
   return(SES.mat)
-  
-} 
+}
 
 
 ############ Qualitative (signed) analyses ############ 
@@ -186,17 +186,24 @@ boolean.analyses <- function(boolean.net, folder, filename) {
 }
 
 
+# Integrated function to perform qualitative analyses on an SES matrix
 qualitative.analyses <- function(SES.mat, folder, filename.boolean.csv, filename.boolean.graph) {
   
+  # Calculate the Laplacian of the SES matrix using row sums
   laplacian <- SES.laplacian(SES.mat, from = "rows") 
-  # The only way for now is by saving the network as a csv and then re-open it with BoolNet - I went down a rabbit hole to mirror this function with a df as input but no success  
+  
+  # Create a boolean file from the SES matrix and save it as a CSV file
+  # Note: This step is necessary to use the BoolNet package for boolean network analysis
   boolean.df <- boolean.file.creation(SES.mat, folder, filename.boolean.csv)
+  
+  # Load the boolean network from the saved CSV file
   boolean.network <- loadNetwork(paste0(folder, filename.boolean.csv, ".csv"))
   
+  # Perform boolean analyses on the loaded boolean network
   boolean.results <- boolean.analyses(boolean.network, folder, filename.boolean.graph)
   
-  return(list(laplacian = laplacian,boolean.network = boolean.network, boolean.results = boolean.results))
-  
+  # Return a list containing the Laplacian, the boolean network, and the boolean analysis results
+  return(list(laplacian = laplacian, boolean.network = boolean.network, boolean.results = boolean.results))
 }
 
 ############ Quantitative analyses ############ 
@@ -261,31 +268,31 @@ SES.simulate <- function(SES.mat, iter, save.fig = FALSE, folder, fig.filename, 
 }
 
 # Function to calculate the Jacobian matrix
-jacobian <- function(SES) {
-  SES.j <- t(SES) # Transpose the SES matrix to compute Jacobian
+jacobian <- function(SES.mat) {
+  SES.j <- t(SES.mat) # Transpose the SES matrix to compute Jacobian
   return(SES.j) # Return the Jacobian matrix
 }
 
 # Function to calculate the left eigenvectors of a matrix
-lefteigen <- function(mat) {
-  left <- eigen(t(mat))$vector # Compute left eigenvectors using the transpose
+lefteigen <- function(SES.mat) {
+  left <- eigen(t(SES.mat))$vector # Compute left eigenvectors using the transpose
   return(left) # Return left eigenvectors
 }
 
 # Function to calculate the right eigenvectors of a matrix
-righteigen <- function(mat) {
-  right <- eigen(mat)$vector # Compute right eigenvectors
+righteigen <- function(SES.mat) {
+  right <- eigen(SES.mat)$vector # Compute right eigenvectors
   return(right) # Return right eigenvectors
 }
 
 # Function to calculate the participation ratio
-participation_ratio <- function(SES, folder, filename, title) {
+participation_ratio <- function(SES.mat, folder, filename, title) {
   # Ensure necessary libraries are loaded
   require(Polychrome)
   require(ggplot2)
 
   # Create the Jacobian matrix of the SES
-  SES.j <- jacobian(SES)
+  SES.j <- jacobian(SES.mat)
 
   # Calculate the left and right eigenvectors of the Jacobian matrix
   LJ <- lefteigen(SES.j)
@@ -295,11 +302,11 @@ participation_ratio <- function(SES, folder, filename, title) {
   PR <- rowSums(RJ * LJ)^2 / rowSums((RJ * LJ)^2)
 
   # Create a data frame for the results
-  PR.df <- data.frame(group = title, components = colnames(SES), PR = PR)
+  PR.df <- data.frame(group = title, components = colnames(SES.mat), PR = PR)
 
   # Generate a color palette for the plot
-  fillcol <- glasbey.colors(nrow(SES))
-  names(fillcol) <- colnames(SES)
+  fillcol <- glasbey.colors(nrow(SES.mat))
+  names(fillcol) <- colnames(SES.mat)
 
   # Create a bar plot for the participation ratios
   plot1 <- ggplot(PR.df, aes(y = Re(PR), x = components, fill = components)) +
@@ -318,140 +325,110 @@ participation_ratio <- function(SES, folder, filename, title) {
 }
 
 # Function to simulate a matrix with random values based on the input matrix
+# Note: 'change' should be a number indicating the element, ranging between 1 and prod(dim(mat))
+# Note: The analyses using Automated Bayesian Computing (ABC) are still under development
 
-# Change should be a number indicating the element, ranging between 1 and prod(dim(mat))
-
-simulate.mat <- function(mat, all = TRUE, change, type = c('uniform','ordinal'), ABC = FALSE, prior = NULL) {
-  #   # Create a matrix to store simulated values based on the input matrix
-  #   # Step-by-step explanation of the operations:
-  #   # 1. (mat != 0): Creates a boolean matrix where TRUE indicates non-zero elements in 'mat'.
-  #   # 2. 1 * (mat != 0): Converts the boolean matrix to a numeric matrix of 1s and 0s.
-  #   # 3. sign(mat): Returns the sign of each element in 'mat' (-1, 1, or 0).
-  #   # 4. matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat)): Creates a matrix of random numbers uniformly distributed between 0 and 1.
-  #   # 5. The final product yields a matrix where:
-  #   #    - Elements corresponding to zeros in 'mat' remain zero.
-  #   #    - Non-zero elements are multiplied by random numbers between 0 and 1, preserving their sign.
-  #   
-  draw <- c(0, 0.25, 0.5, 1) # Corresponds to the strong, medium and weak link definition in the SES
+simulate.mat <- function(SES.mat, all = TRUE, change, type = c('uniform', 'ordinal')) {
   
-  # if(ABC == TRUE){
-  #   # For now ABC can only be performed on the full matrix and with a uniform distribution
-  #   
-  #   mat.sim <- 1 * (mat != 0) * sign(mat) * matrix(prior, nrow(mat), ncol(mat))
-  #   
-  # } else {
-    
-    if(all == TRUE){
-      
-      if(type == 'uniform'){
-        newmat <- matrix(runif(prod(dim(mat)), 0, 1), nrow(mat), ncol(mat))
-      } else if (type == 'ordinal'){
-        newmat <- matrix(sample(draw, prod(dim(mat)), replace = TRUE), nrow(mat), ncol(mat))
-      }
-      
-      mat.sim <- 1 * (mat != 0) * sign(mat) * newmat
-      
-    } else {
-      
-      mat.sim <- mat
-      
-      if(type == 'uniform'){
-        mat.sim[as.matrix(change)] <- sign(mat[as.matrix(change)]) * runif(length(mat[as.matrix(change)]), 0, 1)
-        
-      } else if (type == 'ordinal'){
-        
-        mat.sim[as.matrix(change)] <- sign(mat[as.matrix(change)]) * sample(draw,length(mat[as.matrix(change)]),replace=T)
-        
-      }
+  # Define possible values for ordinal simulation
+  draw <- c(0, 0.25, 0.5, 1) # Corresponds to the strong, medium, and weak link definitions in the SES
+  
+  if (all == TRUE) {
+    # Simulate all elements of the matrix
+    if (type == 'uniform') {
+      # Generate a matrix of random numbers uniformly distributed between 0 and 1
+      newmat <- matrix(runif(prod(dim(SES.mat)), 0, 1), nrow(SES.mat), ncol(SES.mat))
+    } else if (type == 'ordinal') {
+      # Generate a matrix of random values from the defined ordinal set
+      newmat <- matrix(sample(draw, prod(dim(SES.mat)), replace = TRUE), nrow(SES.mat), ncol(SES.mat))
     }
-  # }
+    
+    # Create the simulated matrix by preserving the structure of the input matrix
+    mat.sim <- 1 * (SES.mat != 0) * sign(SES.mat) * newmat
+    
+  } else {
+    # Simulate only specific elements of the matrix
+    mat.sim <- SES.mat
+    
+    if (type == 'uniform') {
+      # Generate random numbers uniformly distributed between 0 and 1 for specified elements
+      mat.sim[as.matrix(change)] <- sign(SES.mat[as.matrix(change)]) * runif(length(SES.mat[as.matrix(change)]), 0, 1)
+    } else if (type == 'ordinal') {
+      # Generate random values from the defined ordinal set for specified elements
+      mat.sim[as.matrix(change)] <- sign(SES.mat[as.matrix(change)]) * sample(draw, length(SES.mat[as.matrix(change)]), replace = TRUE)
+    }
+  }
   
-  return(mat.sim) # Return the simulated matrix
+  # Return the simulated matrix
+  return(mat.sim)
 }
 
+
 # Function to simulate effects on the matrix based on specified measures
-simulate.measure <- function(mat, measure, affected, indicators, lower, upper) {
+simulate.measure <- function(SES.mat, measure, affected, indicators, lower, upper) {
   # Generate random effects for the affected variables
   measure.ef <- runif(length(affected), lower, upper)
   
   # Initialize a new row for the matrix
-  newrow <- matrix(rep(0, ncol(mat)), nrow = 1)
-  newrow[match(affected, colnames(mat))] <- measure.ef # Assign effects to affected variables
+  newrow <- matrix(rep(0, ncol(SES.mat)), nrow = 1)
+  newrow[match(affected, colnames(SES.mat))] <- measure.ef # Assign effects to affected variables
   
   # Add the new row to the original matrix
-  mat <- rbind(mat, newrow)
+  SES.mat <- rbind(SES.mat, newrow)
   
   # Generate random effects for the indicators
   measure.af <- runif(length(indicators), lower, upper) 
   
   # Initialize a new column for the matrix
-  newcol <- matrix(rep(0, nrow(mat)), ncol = 1)
-  newcol[match(indicators, row.names(mat))] <- measure.af # Assign effects to indicators
+  newcol <- matrix(rep(0, nrow(SES.mat)), ncol = 1)
+  newcol[match(indicators, row.names(SES.mat))] <- measure.af # Assign effects to indicators
   
   # Add the new column to the matrix
-  mat <- cbind(mat, newcol)
+  SES.mat <- cbind(SES.mat, newcol)
   
   # Name the new row and column appropriately
-  row.names(mat)[nrow(mat)] <- colnames(mat)[ncol(mat)] <- measure
+  row.names(SES.mat)[nrow(SES.mat)] <- colnames(SES.mat)[ncol(SES.mat)] <- measure
   
-  return(mat) # Return the modified matrix
+  return(SES.mat) # Return the modified matrix
 }
 
 
 # Function to observe state shifts in the SES dynamics
-state.shift <- function(mat, greed, iter, type = c('uniform','ordinal'),
+state.shift <- function(SES.mat, greed, iter, type = c('uniform', 'ordinal'),
                         all = TRUE, change = NULL,
-                        measure = FALSE, affected = NULL, indicators = NULL, lower = -1, upper = 0,
                         folder, file) {
   
   require(reshape2) # Load reshape2 for data manipulation
   
-  newnames <- row.names(mat)
+  newnames <- row.names(SES.mat) # Get the row names of the input matrix
   
-  if(measure){
-    newnames <- c(newnames, measure) 
-    focus.mat.df <- data.frame(from = factor(c(rep(measure, length(newnames)), newnames)), to = factor(c(newnames, rep(measure, length(newnames)))))
-    
-    state.sim <- array(NA, dim = c(nrow(mat) + 1, greed))
-    rownames(state.sim) <- c(row.names(mat), measure)
-    
-    mat.sim.df <- array(NA, dim = c(nrow(focus.mat.df), greed + 2))
-    mat.sim.df[, 1] <- focus.mat.df$from
-    mat.sim.df[, 2] <- focus.mat.df$to 
-    
-  } else {
-    
-    SES.obs <- SES.simulate(SES.mat = mat, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
-    state.obs <- SES.obs[, iter]
-    names(state.obs) <- newnames
-    
-    state.sim <- array(NA, dim = c(length(state.obs),greed))
-    rownames(state.sim) <- newnames
-    
-    mat.m <- melt(mat)
-    mat.sim.df <- array(NA, dim = c(nrow(mat.m), greed + 2))
-    mat.sim.df[,1] <- mat.m$Var1
-    mat.sim.df[,2] <- mat.m$Var2 
-  }
+  # Simulate the existing matrix
+  SES.obs <- SES.simulate(SES.mat = SES.mat, iter, save.fig = FALSE, folder = NULL, fig.filename = NULL, fig.title = NULL)
+  state.obs <- SES.obs[, iter]
+  names(state.obs) <- newnames
+  
+  state.sim <- array(NA, dim = c(length(state.obs), greed))
+  rownames(state.sim) <- newnames
+  
+  mat.m <- melt(SES.mat)
+  mat.sim.df <- array(NA, dim = c(nrow(mat.m), greed + 2))
+  mat.sim.df[, 1] <- mat.m$Var1
+  mat.sim.df[, 2] <- mat.m$Var2 
   
   tic <- Sys.time() # Start the timer
   
   # Perform simulations based on the greed parameter
   for (i in 1:greed) {
     
-    # Either simulate a new measure (new link), change the weights of all links (uniform or ordinal) or change selected links
-    if(measure){
-      mat.sim <- simulate.measure(mat, measure, affected, indicators, lower = -1, upper = 0)
-    } else {
-      mat.sim <- simulate.mat(mat, type = type, all, change) # Simulate a new matrix
-    }
+    # Change the weights of all links (uniform or ordinal) or change selected links
+    mat.sim <- simulate.mat(SES.mat = SES.mat, type = type, all, change) # Simulate a new matrix
     
-    SES <- SES.simulate(SES.mat = mat.sim, iter, save.fig = F, folder = NULL, fig.filename = NULL, fig.title = NULL)
+    SES <- SES.simulate(SES.mat = mat.sim, iter, save.fig = FALSE, folder = NULL, fig.filename = NULL, fig.title = NULL)
     
     mat.sim.df[, i + 2] <- melt(mat.sim)$value # Store the simulated matrix values
     state.sim[, i] <- apply(sign(SES[, (iter - 100):iter]), 1, prod) # Capture behavior over the last 101 steps
     
-    if (i %in% c(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000)) { 
+    if (i %in% seq(100000, 900000, by = 100000)) { 
       print(i) 
       flush.console()
     }
@@ -459,11 +436,188 @@ state.shift <- function(mat, greed, iter, type = c('uniform','ordinal'),
   
   toc <- Sys.time() - tic # Record the elapsed time
   
-  # To test
-  save(state.sim, mat.sim.df, mat.m, mat, file = paste(folder, file, sep = "/")) # Save the results
+  # Save the results
+  save(state.sim, mat.sim.df, mat.m, SES.mat, file = paste(folder, file, sep = "/")) 
   
-  return(list(state.sim = state.sim, mat.sim.df = mat.sim.df, mat.m = mat.m, mat = mat)) # Return simulation results
+  # Return simulation results
+  return(list(state.sim = state.sim, mat.sim.df = mat.sim.df, mat.m = mat.m, SES.mat = SES.mat)) 
 }
+
+
+# Function to prepare data for random forest analysis using the greedy approach
+RF.prep <- function(state.shift.res, tolerance = 0.000001, targets, greed) {
+  
+  # Extract the state simulation results
+  bin <- state.shift.res$state.sim
+  
+  # Apply a tolerance threshold to the simulation results
+  bin[abs(bin) < tolerance] <- 0
+  bin <- sign(bin)
+  
+  # Identify desirable outcomes based on the specified targets
+  desirable.outcomes <- which(colSums(bin[match(targets, row.names(bin)), ]) == length(targets))
+  
+  # Extract the relevant part of the simulation data frame
+  sim.ana <- state.shift.res$mat.sim.df[which(state.shift.res$mat.m$value != 0), ]
+  
+  # Transpose the simulation data frame and set column names
+  sim.ana.df <- t(sim.ana[, 3:(greed + 2)])
+  colnames(sim.ana.df) <- apply(sim.ana[, 1:2], 1, function(x) paste0(row.names(state.shift.res$SES.mat)[x[1]], " to ", row.names(state.shift.res$SES.mat)[x[2]]))
+  
+  # Convert the transposed data frame to a standard data frame
+  sim.ana.df <- as.data.frame(sim.ana.df)
+  
+  # Initialize the outcomes column
+  sim.ana.df$outcomes <- 0
+  
+  # Mark the desirable outcomes
+  sim.ana.df$outcomes[desirable.outcomes] <- 1
+  
+  # Return the prepared data frame
+  return(sim.ana.df)
+}
+
+# Function to perform random forest analysis
+random.forest <- function(sim.outcomes, ntree = 500, folder, file.RF) {
+  require(randomForest)
+  require(randomForestExplainer)
+  require(reprtree)
+  require(cluster)
+  
+  # Prepare data for random forest analysis
+  sim.outcomes$outcomes <- factor(sim.outcomes$outcomes) # Convert outcomes to factor
+  
+  # Clean column names for compatibility
+  colnames(sim.outcomes) <- gsub("\\s*\\([^\\)]+\\)", "", colnames(sim.outcomes)) # Remove parentheses and their contents
+  colnames(sim.outcomes) <- gsub(" ", "_", colnames(sim.outcomes)) # Replace spaces with underscores
+  colnames(sim.outcomes) <- gsub("\\.", "", colnames(sim.outcomes)) # Remove periods
+  colnames(sim.outcomes) <- gsub("\\-", "", colnames(sim.outcomes)) # Remove hyphens
+  
+  # Train the random forest model
+  forest <- randomForest(outcomes ~ ., data = sim.outcomes, ntree = ntree, localImp = TRUE, proximity = FALSE)
+  
+  # Save the trained forest model
+  save(forest, file = paste(folder, file.RF, sep = "/"))
+  
+  # Return the trained random forest model
+  return(forest)
+}
+
+# Function to analyze and visualize random forest results
+random.forest.res <- function(input, folder, filename1.RF, filename2.RF) {
+  
+  require(ggplot2) # Load ggplot2 for plotting
+  
+  # Measure the importance of each feature in the random forest model
+  importance_frame <- measure_importance(input)
+  
+  # Save the importance frame to a file
+  save(importance_frame, file = paste0(folder, filename1.RF))
+  
+  # Create a multi-way importance plot
+  pa <- plot_multi_way_importance(importance_frame, x_measure = "gini_decrease", y_measure = "accuracy_decrease", size_measure = "p_value", main = "Tuscany (CLD)") +
+    labs(x = "mean decrease of GINI coefficient", y = "mean decrease in accuracy")
+  
+  # Save the plot as a PNG file
+  ggsave(paste0(folder, filename2.RF, ".png"), plot = pa, device = "png", width = 40, height = 40, units = "cm", dpi = 200, bg = "white")
+  
+  # Return the importance frame
+  return(importance_frame)
+}
+
+# Function that combines all quantitative anaylses
+quantitative.analyses <- function(SES.mat, greed = 1000, iter = 500, 
+                                  indicators,
+                                  folder, 
+                                  filename.simu.figure, 
+                                  title.simu,
+                                  filename.PR,
+                                  filename.greedy.res, 
+                                  file.RF, 
+                                  filename1.RF, 
+                                  filename2.RF){
+  
+  sim.res <- SES.simulate(SES.mat = SES.mat, iter = iter, save.fig = T, folder, fig.filename = filename.simu.figure, 
+                          fig.title = title.simu)
+  
+  PR <- participation_ratio(SES.mat = SES.mat, folder = folder, filename = filename.PR , title = title.simu) 
+  
+  state.shift.res <- state.shift(SES.mat = SES.mat, greed, iter, type = 'uniform', folder = folder, file = filename.greedy.res)
+  
+  sim.outcomes.res <- RF.prep(state.shift.res = state.shift.res, targets = indicators, greed = greed)
+  
+  forest <- random.forest(sim.outcomes = sim.outcomes.res, 
+                          ntree = 500, folder = folder, 
+                          file.RF = file.RF)
+  
+  gc()
+  importance_frame <- random.forest.res(input = forest, folder = folder, 
+                                        filename1.RF = filename1.RF, 
+                                        filename2.RF = filename2.RF)
+  
+  return(list(sim.res = sim.res, PR = PR, state.shift.res = state.shift.res, sim.outcomes = sim.outcomes, forest = forest, importance_frame = importance_frame))
+}
+
+
+############ Introduce measures ############ 
+
+
+# Function to observe state shifts with measures in the SES dynamics
+state.shift.measure <- function(measure, affected, SES.mat, greed, iter, indicators, 
+                                folder, file.measure) {
+  
+  require(reshape2) # Load reshape2 for data manipulation
+  
+  # Combine row names of the matrix with the measure
+  newnames <- c(row.names(SES.mat), measure)
+  
+  # Create a data frame for the new measure
+  focus.mat.df <- data.frame(from = factor(c(rep(measure, length(newnames)), newnames)), to = factor(c(newnames, rep(measure, length(newnames)))))
+  
+  # Initialize an array to store the state simulation results
+  state.sim <- array(NA, dim = c(nrow(SES.mat) + 1, greed))
+  rownames(state.sim) <- c(row.names(SES.mat), measure)
+  
+  # Initialize an array to store the simulated matrix values
+  mat.sim.df <- array(NA, dim = c(nrow(focus.mat.df), greed + 2))
+  mat.sim.df[, 1] <- focus.mat.df$from
+  mat.sim.df[, 2] <- focus.mat.df$to # Use factor levels for faster array operations
+  
+  tic <- Sys.time() # Start the timer
+  
+  # Perform simulations based on the greed parameter
+  for (i in 1:greed) {
+    # Simulate the measure's effect on the matrix
+    mat.sim <- simulate.measure(SES.mat, measure, affected, indicators, lower = -1, upper = 0)
+    
+    # Simulate the SES dynamics
+    # SES <- time.simulate(mat.sim, iter, starting.value)
+    
+    SES <- SES.simulate(SES.mat = mat.sim, iter, save.fig = FALSE, folder = NULL, fig.filename = NULL, fig.title = NULL)
+    
+    # Store the simulated matrix values
+    mat.sim.df[, i + 2] <- c(mat.sim[(nrow(mat) + 1):nrow(mat.sim), ], mat.sim[, (ncol(mat) + 1):ncol(mat.sim)]) # Account for multiple measures
+    
+    # Capture behavior over the last 101 steps
+    state.sim[, i] <- apply(sign(SES[, (iter - 100):iter]), 1, prod) # Use an odd number of steps to capture behavior
+  }
+  
+  toc <- Sys.time() - tic # Record the elapsed time
+  toc
+  
+  # Save the results
+  save(state.sim, mat.sim.df, mat.m, mat, file = paste(folder, file.measure, sep = "/"))
+  
+  # Return simulation results
+  return(list(state.sim = state.sim, mat.sim.df = mat.sim.df, mat.m = mat.m, mat = mat.m))
+}
+
+
+###########################################################################################################################
+
+
+
+
 
 #############################################
 # With EasyABC 
@@ -503,119 +657,4 @@ state.shift.ABC <- function(x, iter = 500, desirable.outcomes = indicators) {
 
 
 ##############################################
-
-# Function when using greedy approach
-RF.prep <- function(state.shift.res, tolerance = 0.000001, targets, greed = 100){
-  
-  bin <- state.shift.res$state.sim
-  bin[abs(bin) < tolerance] <- 0
-  bin <- sign(bin)
-  
-  desirable.outcomes <- which(colSums(bin[match(targets, row.names(bin)), ]) == length(targets))
-  
-  sim.ana <- state.shift.res$mat.sim.df[which(state.shift.res$mat.m$value != 0),]
-  sim.ana.df <- t(sim.ana[, 3:(greed + 2)])
-  colnames(sim.ana.df) <- apply(sim.ana[, 1:2], 1, function(x) paste0(row.names(state.shift.res$mat)[x[1]], " to ", row.names(state.shift.res$mat)[x[2]]))
-  sim.ana.df <- as.data.frame(sim.ana.df)
-  
-  sim.ana.df$outcomes <- 0
-  sim.ana.df$outcomes[desirable.outcomes] <- 1
-  
-  return(sim.ana.df)
-}
-
-# Function to perform random forest analysis
-random.forest <- function(sim.outcomes, ntree = 500, folder, file) {
-  require(randomForest)
-  require(randomForestExplainer)
-  require(reprtree)
-  require(cluster)
-
-  # Prepare data for random forest analysis
-  sim.outcomes$outcomes <- factor(sim.outcomes$outcomes) # Convert outcomes to factor
-  # Clean column names for compatibility
-  colnames(sim.outcomes) <- gsub("\\s*\\([^\\)]+\\)", "", colnames(sim.outcomes))
-  colnames(sim.outcomes) <- gsub(" ", "_", colnames(sim.outcomes))
-  colnames(sim.outcomes) <- gsub("\\.", "", colnames(sim.outcomes))
-  colnames(sim.outcomes) <- gsub("\\-", "", colnames(sim.outcomes))
-
-  # Train the random forest model
-  forest <- randomForest(outcomes ~ ., data = sim.outcomes, ntree = ntree, localImp = TRUE, proximity = FALSE)
-
-  # Save the trained forest model
-  save(forest, file = paste(folder, file, sep = "/"))
-
-  return(forest) # Return the trained random forest model
-}
-
-# Function to analyze and visualize random forest results
-random.forest.res <- function(input, folder, filename1, filename2) {
-  
-  require(ggplot2)
-  
-  # Measure the importance of each feature in the random forest model
-  importance_frame <- measure_importance(input)
-
-  # Save the importance frame to a file
-  save(importance_frame, file = paste0(folder, filename1))
-
-  # Create a multi-way importance plot
-  pa <- plot_multi_way_importance(importance_frame, x_measure = "gini_decrease", y_measure = "accuracy_decrease", size_measure = "p_value", main = "Tuscany (CLD)") +
-    labs(x = "mean decrease of GINI coefficient", y = "mean decrease in accuracy")
-
-  # Save the plot as a PNG file
-  ggsave(paste0(folder, filename2, ".png"), plot = pa, device = "png", width = 40, height = 40, units = "cm", dpi = 200, bg = "white")
-
-  return(importance_frame) # Return the importance frame
-}
-
-
-
-
-# From here not clean yet......
-
-
-
-
-#  Use this for the greedy approach again
-
-
-state.shift.measure <- function(measure, greed, iter, mat, starting.value, indicators) {
-  require(reshape2) # Load reshape2 for data manipulation
-
-  newnames <- c(row.names(mat), measure)
-  focus.mat.df <- data.frame(from = factor(c(rep(measure, length(newnames)), newnames)), to = factor(c(newnames, rep(measure, length(newnames)))))
-
-  state.sim <- array(NA, dim = c(nrow(mat) + 1, greed))
-  rownames(state.sim) <- c(row.names(mat), measure)
-
-  mat.sim.df <- array(NA, dim = c(nrow(focus.mat.df), greed + 2))
-  mat.sim.df[, 1] <- focus.mat.df$from
-  mat.sim.df[, 2] <- focus.mat.df$to # can't deal with character and numbers in array, that's ok we keep it to factor levels, array is faster than df
-
-
-  tic <- Sys.time()
-
-  for (i in 1:greed) {
-    mat.sim <- simulate.measure(mat, measure, affected, indicators, lower = -1, upper = 0)
-
-
-    SES <- time.simulate(mat.sim, iter, starting.value)
-
-    mat.sim.df[, i + 2] <- c(mat.sim[(nrow(mat) + 1):nrow(mat.sim), ], mat.sim[, (ncol(mat) + 1):ncol(mat.sim)]) # like that we account for multiple measures
-
-    state.sim[, i] <- apply(sign(SES[, (iter - 100):iter]), 1, prod) # here we capture behaviour over last 101 steps, importantly an odd number
-  }
-
-  # Looks at the signs of the last 100 elements, to see if they're all the same
-
-  toc <- Sys.time() - tic
-  toc
-
-  # To test
-  save(state.sim, mat.sim.df, mat.m, mat, file = paste(folder, file, sep = "/")) # Save the results
-
-  return(list(state.sim = state.sim, mat.sim.df = mat.sim.df, mat.m = mat.m, mat = mat.m)) # Return simulation results
-}
-
 
