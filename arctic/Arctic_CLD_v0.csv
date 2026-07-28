@@ -1,0 +1,54 @@
+﻿From;To;weight
+(P) Agreement on quota allocation;Stocks of fish;1
+Predation by other organisms;Stocks of fish;-1
+Ratio of what is landed vs. MSY;Stocks of fish;1
+Stock productivity;Stocks of fish;1
+Total fishing effort;Stocks of fish;-1
+Jobs;Municipality tax;1
+Jobs;(S) Local development;1
+(E) Landings;(S) Local development;1
+Municipality tax;(S) Local development;1
+(T) Fishery technology;Jobs;-1
+Hardware for fishery;Jobs;-1
+(E) Landings;Jobs;1
+Jobs;Taxes;1
+Profits;Taxes;1
+(E) Landings;Ratio of what is landed vs. MSY;-1
+Maximum Sustainable Yield (MSY);Ratio of what is landed vs. MSY;1
+Stocks of fish;Maximum Sustainable Yield (MSY);1
+(En) Climate variability;Uncertainties;1
+Variability in recruitment;Uncertainties;1
+Variability in 'Growth';Uncertainties;1
+Difference between species;Uncertainties;1
+(P) Agreement on quota allocation;Total fishing effort;-1
+Variability of fish distribution;Total fishing effort;1
+Consensus;(P) Agreement on quota allocation;1
+Predictability of productivity;(P) Agreement on quota allocation;1
+Variability of fish distribution;(P) Agreement on quota allocation;-1
+(L) High level government decision making;Consensus;1
+Other countries goals;Consensus;-1
+Past goals for allocation;Discrepancies from decisions;1
+Real decision taken;Discrepancies from decisions;-1
+(E) Landings;(S) Exports;1
+Fisheries related gear companies;(T) Fishery technology;1
+Total fishing effort;Fishing costs;1
+Fisheries related gear companies;Hardware for fishery;1
+Discrepancies from decisions;(L) High level government decision making;1
+Influence in decision making;(L) High level government decision making;1
+Social-economic advisory;(L) High level government decision making;1
+Variability of fish distribution;(L) High level government decision making;-1
+Power of the sector;Influence in decision making;1
+Stocks of fish;(E) Landings;1
+Total fishing effort;(E) Landings;1
+(P) Agreement on quota allocation;National economy;-1
+Taxes;National economy;1
+Other jobs;National economy;1
+Fisheries related gear companies;Other jobs;1
+Profits;Power of the sector;1
+Uncertainties;Predictability of productivity;-1
+(S) Exports;Profits;1
+Fishing costs;Profits;-1
+(E) Landings;Profits;1
+(En) Climate variability;Temperature variations;1
+Temperature variations;Variability of fish distribution;1
+Stocks of fish;Variability of fish distribution;1

@@ -1,0 +1,130 @@
+From,To,weight
+(P) Agreement on quota allocation,Stocks of fish,1
+Predation by other organisms,Stocks of fish,-1
+Ratio of what is landed vs. MSY,Stocks of fish,1
+Stock productivity,Stocks of fish,1
+Total fishing effort_IS,Stocks of fish,-1
+Jobs_IS,Municipality tax_IS,1
+Jobs_IS,(S) Local development_IS,1
+(E) Landings_IS,(S) Local development_IS,1
+Municipality tax_IS,(S) Local development_IS,1
+(T) Fishery technology_IS,Jobs_IS,-1
+Hardware for fishery_IS,Jobs_IS,-1
+(E) Landings_IS,Jobs_IS,1
+Jobs_IS,Taxes_IS,1
+Profits_IS,Taxes_IS,1
+(E) Landings_IS,Ratio of what is landed vs. MSY,-1
+Maximum Sustainable Yield (MSY),Ratio of what is landed vs. MSY,1
+Stocks of fish,Maximum Sustainable Yield (MSY),1
+(En) Climate variability,Uncertainties,1
+Variability in recruitment,Uncertainties,1
+Variability in 'Growth',Uncertainties,1
+Difference between species,Uncertainties,1
+(P) Agreement on quota allocation,Total fishing effort_IS,-1
+Variability of fish distribution_IS,Total fishing effort_IS,1
+Consensus,(P) Agreement on quota allocation,1
+Predictability of productivity,(P) Agreement on quota allocation,1
+Variability of fish distribution_IS,(P) Agreement on quota allocation,-1
+(L) High level government decision making_IS,Consensus,1
+Past goals for allocation_IS,Discrepancies from decisions_IS,1
+Real decision taken_IS,Discrepancies from decisions_IS,-1
+(E) Landings_IS,(S) Exports_IS,1
+Fisheries related gear companies_IS,(T) Fishery technology_IS,1
+Total fishing effort_IS,Fishing costs_IS,1
+Fisheries related gear companies_IS,Hardware for fishery_IS,1
+Discrepancies from decisions_IS,(L) High level government decision making_IS,1
+Influence in decision making_IS,(L) High level government decision making_IS,1
+Social-economic advisory_IS,(L) High level government decision making_IS,1
+Variability of fish distribution_IS,(L) High level government decision making_IS,-1
+Power of the sector_IS,Influence in decision making_IS,1
+Stocks of fish,(E) Landings_IS,1
+Total fishing effort_IS,(E) Landings_IS,1
+(P) Agreement on quota allocation,National economy_IS,-1
+Taxes_IS,National economy_IS,1
+Other jobs_IS,National economy_IS,1
+Fisheries related gear companies_IS,Other jobs_IS,1
+Profits_IS,Power of the sector_IS,1
+Uncertainties,Predictability of productivity,-1
+(S) Exports_IS,Profits_IS,1
+Fishing costs_IS,Profits_IS,-1
+(E) Landings_IS,Profits_IS,1
+(En) Climate variability,Temperature variations,1
+Temperature variations,Variability of fish distribution_IS,1
+Stocks of fish,Variability of fish distribution_IS,1
+Total fishing effort_GL,Stocks of fish,-1
+Jobs_GL,Municipality tax_GL,1
+Jobs_GL,(S) Local development_GL,1
+(E) Landings_GL,(S) Local development_GL,1
+Municipality tax_GL,(S) Local development_GL,1
+(T) Fishery technology_GL,Jobs_GL,-1
+Hardware for fishery_GL,Jobs_GL,-1
+(E) Landings_GL,Jobs_GL,1
+Jobs_GL,Taxes_GL,1
+Profits_GL,Taxes_GL,1
+(E) Landings_GL,Ratio of what is landed vs. MSY,-1
+(P) Agreement on quota allocation,Total fishing effort_GL,-1
+Variability of fish distribution_GL,Total fishing effort_GL,1
+Variability of fish distribution_GL,(P) Agreement on quota allocation,-1
+(L) High level government decision making_GL,Consensus,1
+Past goals for allocation_GL,Discrepancies from decisions_GL,1
+Real decision taken_GL,Discrepancies from decisions_GL,-1
+(E) Landings_GL,(S) Exports_GL,1
+Fisheries related gear companies_GL,(T) Fishery technology_GL,1
+Total fishing effort_GL,Fishing costs_GL,1
+Fisheries related gear companies_GL,Hardware for fishery_GL,1
+Discrepancies from decisions_GL,(L) High level government decision making_GL,1
+Influence in decision making_GL,(L) High level government decision making_GL,1
+Social-economic advisory_GL,(L) High level government decision making_GL,1
+Variability of fish distribution_GL,(L) High level government decision making_GL,-1
+Power of the sector_GL,Influence in decision making_GL,1
+Stocks of fish,(E) Landings_GL,1
+Total fishing effort_GL,(E) Landings_GL,1
+(P) Agreement on quota allocation,National economy_GL,-1
+Taxes_GL,National economy_GL,1
+Other jobs_GL,National economy_GL,1
+Fisheries related gear companies_GL,Other jobs_GL,1
+Profits_GL,Power of the sector_GL,1
+(S) Exports_GL,Profits_GL,1
+Fishing costs_GL,Profits_GL,-1
+(E) Landings_GL,Profits_GL,1
+Temperature variations,Variability of fish distribution_GL,1
+Stocks of fish,Variability of fish distribution_GL,1
+Total fishing effort_FO,Stocks of fish,-1
+Jobs_FO,Municipality tax_FO,1
+Jobs_FO,(S) Local development_FO,1
+(E) Landings_FO,(S) Local development_FO,1
+Municipality tax_FO,(S) Local development_FO,1
+(T) Fishery technology_FO,Jobs_FO,-1
+Hardware for fishery_FO,Jobs_FO,-1
+(E) Landings_FO,Jobs_FO,1
+Jobs_FO,Taxes_FO,1
+Profits_FO,Taxes_FO,1
+(E) Landings_FO,Ratio of what is landed vs. MSY,-1
+(P) Agreement on quota allocation,Total fishing effort_FO,-1
+Variability of fish distribution_FO,Total fishing effort_FO,1
+Variability of fish distribution_FO,(P) Agreement on quota allocation,-1
+(L) High level government decision making_FO,Consensus,1
+Past goals for allocation_FO,Discrepancies from decisions_FO,-1
+Real decision taken_FO,Discrepancies from decisions_FO,1
+(E) Landings_FO,(S) Exports_FO,1
+Fisheries related gear companies_FO,(T) Fishery technology_FO,1
+Total fishing effort_FO,Fishing costs_FO,1
+Fisheries related gear companies_FO,Hardware for fishery_FO,1
+Discrepancies from decisions_FO,(L) High level government decision making_FO,1
+Influence in decision making_FO,(L) High level government decision making_FO,1
+Social-economic advisory_FO,(L) High level government decision making_FO,-1
+Variability of fish distribution_FO,(L) High level government decision making_FO,1
+Power of the sector_FO,Influence in decision making_FO,1
+Stocks of fish,(E) Landings_FO,1
+Total fishing effort_FO,(E) Landings_FO,-1
+(P) Agreement on quota allocation,National economy_FO,1
+Taxes_FO,National economy_FO,1
+Other jobs_FO,National economy_FO,1
+Fisheries related gear companies_FO,Other jobs_FO,1
+Profits_FO,Power of the sector_FO,-1
+Uncertainties,Predictability of productivity,1
+(S) Exports_FO,Profits_FO,-1
+Fishing costs_FO,Profits_FO,1
+(E) Landings_FO,Profits_FO,1
+Temperature variations,Variability of fish distribution_FO,1
+Stocks of fish,Variability of fish distribution_FO,1
