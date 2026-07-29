@@ -113,6 +113,50 @@ SES.laplacian <- function(SES.mat, from = c("rows", "cols")) {
   return(lap.e) # Return eigenvalues
 }
 
+
+
+######################
+#### boolean
+
+boolean_file_creation<-function(SES.mat,folder,filename) {
+
+SES.bin<-sign(SES.mat)
+colnames(SES.bin)<-gsub("\\s*\\([^\\)]+\\)","",colnames(SES.bin))
+row.names(SES.bin)<-gsub("\\s*\\([^\\)]+\\)","",row.names(SES.bin))
+colnames(SES.bin)<-gsub("[^[:alnum:]]","",colnames(SES.bin))
+row.names(SES.bin)<-gsub("[^[:alnum:]]","",row.names(SES.bin))
+
+colnames(SES.bin)<-gsub(" ","_",colnames(SES.bin))
+row.names(SES.bin)<-gsub(" ","_",row.names(SES.bin))
+
+if (all(colSums(abs(SES.bin))!=0)==FALSE) { #fixed error 7 mar 2025
+SES.bin<-SES.bin[,-which(colSums(abs(SES.bin))==0)]
+}
+boolean.df<-data.frame(targets=factor(colnames(SES.bin)),factors=NA) # to is the columns
+
+for (i in 1:ncol(SES.bin)) {
+poss<-names(which(SES.bin[,i]==1))
+negs<-names(which(SES.bin[,i]==-1))
+if (length(negs)>0) {
+negs<-paste0("!",negs)
+}
+all<-c(poss,negs)
+
+boolean.df$factors[i]<-paste(all,collapse="|")
+}
+write.csv(boolean.df,file=paste0(folder,filename,".csv"),row.names = F,quote=FALSE)
+}
+##
+
+
+dec2bin <- function(dec,len)
+{
+  bin = rep(0,len)
+  bin = .C("dec2binC",as.integer(bin),as.integer(dec),as.integer(len),NAOK=TRUE)[[1]]
+  return(bin)
+}
+
+
 # Function to create a boolean file from the SES matrix
 boolean.file.creation <- function(SES.mat, folder, filename) {
   
