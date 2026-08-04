@@ -58,7 +58,13 @@ for (i in 1:n_attractors) {
       m <- m + 1
     }
   }
+  print(i)
+  flush.console()
 }
 attractors.df
 
 write.csv(attractors.df, file = "arctic/cld3nation_attractors_bool.csv")
+
+
+
+
