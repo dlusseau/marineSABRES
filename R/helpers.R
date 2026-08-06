@@ -1,3 +1,22 @@
+#############################################
+#### get attractor sequence one at a time
+
+getattractorbin<-function(states,A,initialstate,caution=TRUE){
+  if(caution==TRUE){
+  print("caution: this function only retrieve non-complex attractors. if you have run getAttractors with type=asynchronous, 
+        you may have identified complex/loose attractors which are not reported by this function")
+  flush.console()
+  } #this allows us to print the caution when the function is used once only, turn off caution when the function is apply
+  
+  if (initialstate==TRUE){ #the attractor is not complex but can still be composed of multiple states
+  binAtt<-getAttractorSequence(states,A)
+  } else{
+  binAtt<-NULL
+  }
+  binAtt
+}
+
+
 
 # Encode a vector of binary values <bin> with <len> bits
 # to a decimal number
